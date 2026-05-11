@@ -32,6 +32,9 @@ Thumbs.db
 # Ruff cache
 .ruff_cache/
 
+# Payment integration docs / test files
+PAYMENT_INTEGRATION_SUMMARY.md
+
 # Supabase
 supabase/
 supabase-setup.sql
