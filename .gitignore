@@ -15,6 +15,7 @@ backend/*.pyc
 # Frontend
 frontend/node_modules/
 frontend/dist/
+.vite/
 frontend/.vite/
 
 # IDE
