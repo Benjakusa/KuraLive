@@ -32,16 +32,5 @@ Thumbs.db
 # Ruff cache
 .ruff_cache/
 
-# Payment integration docs / test files
-PAYMENT_INTEGRATION_SUMMARY.md
-
-# Supabase
+# Supabase (deleted)
 supabase/
-supabase-setup.sql
-agent-rls-fix.sql
-architecture_update.sql
-subscriptions-setup.sql
-admin_setup.sql
-payment-confirmation-migration.sql
-test-payment-flow.sql
-test-mpesa-payment.js
