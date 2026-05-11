@@ -1,0 +1,43 @@
+# Environments
+.env
+.env.local
+.env.production
+*.env
+
+# Backend
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/uploads/
+backend/*.pyc
+*.pyc
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ruff cache
+.ruff_cache/
+
+# Supabase
+supabase/
+supabase-setup.sql
+agent-rls-fix.sql
+architecture_update.sql
+subscriptions-setup.sql
+admin_setup.sql
+payment-confirmation-migration.sql
+test-payment-flow.sql
+test-mpesa-payment.js
