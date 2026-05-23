@@ -24,6 +24,14 @@ import AgentDashboard from './pages/AgentDashboard';
 import ForcePasswordReset from './pages/ForcePasswordReset';
 import NotFound from './pages/NotFound';
 
+// New Pages
+import SMSBroadcast from './pages/manager/SMSBroadcast';
+
+import SocialMedia from './pages/manager/SocialMedia';
+import PollManager from './pages/manager/PollManager';
+import PollResults from './pages/manager/PollResults';
+import VotingPage from './pages/public/VotingPage';
+
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { currentUser, userRole, loading } = useAuth();
@@ -94,6 +102,9 @@ function App() {
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
 
+              {/* Public API - Polling Endpoint */}
+              <Route path="/vote/:token" element={<VotingPage />} />
+
               {/* Manager Routes */}
               <Route
                 path="/manager"
@@ -108,6 +119,11 @@ function App() {
                 <Route path="stations" element={<PollingStations />} />
                 <Route path="agents" element={<AgentManagement />} />
                 <Route path="results" element={<ResultsOverview />} />
+                <Route path="sms" element={<SMSBroadcast />} />
+
+                <Route path="social" element={<SocialMedia />} />
+                <Route path="polls" element={<PollManager />} />
+                <Route path="polls/:id" element={<PollResults />} />
                 <Route path="billing" element={<ManagerBilling />} />
               </Route>
 

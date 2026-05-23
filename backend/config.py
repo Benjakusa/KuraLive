@@ -21,4 +21,18 @@ class Config:
     UPLOAD_FOLDER = os.path.join(
         os.path.dirname(__file__), os.getenv("UPLOAD_FOLDER", "uploads")
     )
-    MAX_CONTENT_LENGTH = 10 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+
+    # TalkingAfrica SMS API
+    TALKINGAFRICA_BASE_URL = os.getenv("TALKINGAFRICA_BASE_URL", "")
+    TALKINGAFRICA_API_KEY = os.getenv("TALKINGAFRICA_API_KEY", "")
+    TALKINGAFRICA_SENDER_ID = os.getenv("TALKINGAFRICA_SENDER_ID", "KuraLive")
+    TALKINGAFRICA_SHORTCODE = os.getenv("TALKINGAFRICA_SHORTCODE", "")
+
+    # Social Media OAuth
+    FACEBOOK_APP_ID = os.getenv("FACEBOOK_APP_ID", "")
+    FACEBOOK_APP_SECRET = os.getenv("FACEBOOK_APP_SECRET", "")
+    TWITTER_CLIENT_ID = os.getenv("TWITTER_CLIENT_ID", "")
+    TWITTER_CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET", "")
+    INSTAGRAM_APP_ID = os.getenv("INSTAGRAM_APP_ID", "")
+    INSTAGRAM_APP_SECRET = os.getenv("INSTAGRAM_APP_SECRET", "")

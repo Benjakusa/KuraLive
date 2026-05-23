@@ -11,11 +11,19 @@ from routes.auth_routes import auth_bp
 from routes.api_routes import api_bp
 from routes.admin_routes import admin_bp
 from routes.daraja_routes import daraja_bp
+from routes.sms_routes import sms_bp
+from routes.social_routes import social_bp
+from routes.contacts_routes import contacts_bp
+from routes.poll_routes import poll_bp
 
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
 app.register_blueprint(api_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(daraja_bp, url_prefix="/api/daraja")
+app.register_blueprint(sms_bp, url_prefix="/api/sms")
+app.register_blueprint(social_bp, url_prefix="/api/social")
+app.register_blueprint(poll_bp, url_prefix="/api")
+app.register_blueprint(contacts_bp, url_prefix="/api/contacts")
 
 
 @app.route("/uploads/<path:filename>")

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
-import { FaChartPie, FaVoteYea, FaMapMarkedAlt, FaUserFriends, FaSignOutAlt, FaChartBar, FaExclamationTriangle, FaBars, FaTimes, FaFileInvoiceDollar } from 'react-icons/fa';
+import { FaChartPie, FaVoteYea, FaMapMarkedAlt, FaUserFriends, FaSignOutAlt, FaChartBar, FaExclamationTriangle, FaBars, FaTimes, FaFileInvoiceDollar, FaSms, FaCalendarAlt, FaShareAlt, FaPollH } from 'react-icons/fa';
 import UpgradeModal from '../components/UpgradeModal';
 
 const ManagerLayout = () => {
@@ -48,6 +48,10 @@ const ManagerLayout = () => {
         { path: '/manager/stations', label: 'Polling Stations', icon: <FaMapMarkedAlt /> },
         { path: '/manager/agents', label: 'Agents', icon: <FaUserFriends /> },
         { path: '/manager/results', label: 'Results', icon: <FaChartBar /> },
+        { path: '/manager/sms', label: 'Broadcast SMS', icon: <FaSms /> },
+
+        { path: '/manager/social', label: 'Social Media', icon: <FaShareAlt /> },
+        { path: '/manager/polls', label: 'Opinion Polls', icon: <FaPollH /> },
         { path: '/manager/billing', label: 'Billing & Plan', icon: <FaFileInvoiceDollar /> },
     ];
 
