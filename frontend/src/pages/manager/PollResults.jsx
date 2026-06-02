@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { FaArrowLeft, FaChartPie, FaChartBar, FaUsers, FaMapMarkerAlt, FaFilter } from 'react-icons/fa';
 import { kenyaLocations } from '../../utils/kenyaLocations';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function PollResults() {
     const { id } = useParams();
@@ -19,15 +19,15 @@ function PollResults() {
     const [isFiltering, setIsFiltering] = useState(false);
 
     useEffect(() => {
-        fetch(`${API}/api/polls/${id}`, { headers }).then(r => r.json()).then(d => setPoll(d.data));
+        fetch(`${API}/polls/${id}`, { headers }).then(r => r.json()).then(d => setPoll(d.data));
         // initial fetch just for rawGeo stations
-        fetch(`${API}/api/polls/${id}/results`, { headers }).then(r => r.json()).then(d => setRawGeo(d.geographic_breakdown));
+        fetch(`${API}/polls/${id}/results`, { headers }).then(r => r.json()).then(d => setRawGeo(d.geographic_breakdown));
     }, [id]);
 
     useEffect(() => {
         setIsFiltering(true);
         const queryParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v)).toString();
-        const url = `${API}/api/polls/${id}/results${queryParams ? `?${queryParams}` : ''}`;
+        const url = `${API}/polls/${id}/results${queryParams ? `?${queryParams}` : ''}`;
         fetch(url, { headers })
             .then(r => r.json())
             .then(d => setAnalytics(d))
