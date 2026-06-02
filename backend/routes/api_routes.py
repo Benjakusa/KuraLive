@@ -341,7 +341,7 @@ def upload_file():
         return jsonify({"error": "No file selected"}), 400
 
     try:
-        upload_dir = os.path.join(Config.UPLOAD_FOLDER, g.current_user["id"])
+        upload_dir = os.path.join(Config.UPLOAD_FOLDER, str(g.current_user["id"]))
         os.makedirs(upload_dir, exist_ok=True)
         filename = f"{int(__import__('time').time())}_{file.filename}"
         filepath = os.path.join(upload_dir, filename)
