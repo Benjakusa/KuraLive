@@ -1,10 +1,11 @@
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory, jsonify, request
 from flask_cors import CORS
 from config import Config
 import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
 CORS(
     app,
     supports_credentials=True,
@@ -14,6 +15,30 @@ CORS(
         "http://localhost:5000",
     ],
 )
+
+
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True}), 200
+
+
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get("Origin")
+    allowed = [
+        "https://uchaguzi360.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:5000",
+    ]
+    if origin in allowed:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Allow-Methods"] = (
+        "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    )
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 
 @app.route("/")
