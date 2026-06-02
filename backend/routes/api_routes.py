@@ -331,6 +331,7 @@ def submit_result():
 @login_required
 def upload_file():
     import os
+    import traceback
     from config import Config
 
     if "file" not in request.files:
@@ -339,13 +340,16 @@ def upload_file():
     if file.filename == "":
         return jsonify({"error": "No file selected"}), 400
 
-    upload_dir = os.path.join(Config.UPLOAD_FOLDER, g.current_user["id"])
-    os.makedirs(upload_dir, exist_ok=True)
-    filename = f"{int(__import__('time').time())}_{file.filename}"
-    filepath = os.path.join(upload_dir, filename)
-    file.save(filepath)
-
-    return jsonify({"url": f"/uploads/{g.current_user['id']}/{filename}"})
+    try:
+        upload_dir = os.path.join(Config.UPLOAD_FOLDER, g.current_user["id"])
+        os.makedirs(upload_dir, exist_ok=True)
+        filename = f"{int(__import__('time').time())}_{file.filename}"
+        filepath = os.path.join(upload_dir, filename)
+        file.save(filepath)
+        return jsonify({"url": f"/uploads/{g.current_user['id']}/{filename}"})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 # ── SUBSCRIPTIONS ────────────────────────────────────
