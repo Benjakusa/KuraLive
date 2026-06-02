@@ -4,6 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { FaChartLine, FaBullhorn, FaPollH, FaVoteYea, FaChartBar, FaUsers, FaLayerGroup, FaCheck, FaLock, FaSun, FaMoon, FaBars, FaTimes, FaRocket, FaStar, FaHandshake, FaClipboardList, FaEnvelope, FaPhone, FaGlobeAfrica, FaUserTie } from 'react-icons/fa';
 import logolight from '../assets/logo1.png';
 import logodark from '../assets/logo3.png';
+import heroBg from '../assets/herospage.jpg';
 
 const LandingPage = () => {
     const [scrolled, setScrolled] = useState(false);
@@ -135,7 +136,7 @@ const LandingPage = () => {
             </nav>
 
             {/* HERO */}
-            <section id="home" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '6rem 1rem 3rem', position: 'relative', backgroundImage: 'url(/src/assets/herospage.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+            <section id="home" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '6rem 1rem 3rem', position: 'relative', backgroundImage: `url(${heroBg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.8)', zIndex: 1 }} />
                 <div style={{ position: 'relative', zIndex: 2, maxWidth: '800px', width: '100%' }}>
 
