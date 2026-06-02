@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: uchaguzi360-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 4 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DARAJA_CONSUMER_KEY
+        sync: false
+      - key: DARAJA_CONSUMER_SECRET
+        sync: false
+      - key: DARAJA_PASSKEY
+        sync: false
+      - key: DARAJA_SHORT_CODE
+        value: "174379"
+      - key: DARAJA_ENV
+        value: sandbox
+      - key: RESEND_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: TALKINGAFRICA_BASE_URL
+        sync: false
+      - key: TALKINGAFRICA_API_KEY
+        sync: false
+      - key: TALKINGAFRICA_SENDER_ID
+        value: Uchaguzi360
+      - key: TALKINGAFRICA_SHORTCODE
+        sync: false
+      - key: UPLOAD_FOLDER
+        value: uploads
