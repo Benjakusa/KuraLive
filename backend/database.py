@@ -1,17 +1,17 @@
-import psycopg2
-import psycopg2.extras
+import psycopg
+from psycopg.rows import dict_row
 from config import Config
 
 
 def get_db():
-    conn = psycopg2.connect(Config.DATABASE_URL)
+    conn = psycopg.connect(Config.DATABASE_URL)
     return conn
 
 
 def query(sql, params=None, fetchone=False, fetchall=False):
     conn = get_db()
     try:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        with conn.cursor(row_factory=dict_row) as cur:
             cur.execute(sql, params)
             if fetchone:
                 return cur.fetchone()
