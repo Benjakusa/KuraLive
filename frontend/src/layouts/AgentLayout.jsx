@@ -33,7 +33,7 @@ const AgentLayout = () => {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaUserShield style={{ color: 'var(--aqua)' }} />
-                    <span style={{ fontWeight: 700, fontSize: isMobile ? '0.95rem' : 'inherit' }}>KuraLive Agent</span>
+                    <span style={{ fontWeight: 700, fontSize: isMobile ? '0.95rem' : 'inherit' }}>Uchaguzi</span><span style={{ fontWeight: 700, fontSize: isMobile ? '0.95rem' : 'inherit', color: '#e5de00' }}>360</span><span style={{ fontWeight: 700, fontSize: isMobile ? '0.95rem' : 'inherit' }}> Agent</span>
                 </div>
 
                 {isMobile ? (
@@ -75,7 +75,7 @@ const AgentLayout = () => {
             </main>
 
             <footer style={{ textAlign: 'center', padding: isMobile ? '1rem' : 'var(--space-6)', color: 'var(--color-text-muted)', fontSize: '0.75rem' }}>
-                &copy; 2026 KuraLive Secure Systems
+                &copy; 2026 Uchaguzi360. All Rights Reserved.
             </footer>
         </div>
     );

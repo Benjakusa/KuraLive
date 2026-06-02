@@ -94,7 +94,7 @@ const ManagerBilling = () => {
                                 <tr key={payment.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                                     <td style={{ padding: '1rem', fontSize: '0.85rem' }}>{new Date(payment.created_at).toLocaleDateString()}</td>
                                     <td style={{ padding: '1rem', fontSize: '0.85rem', textTransform: 'capitalize', fontWeight: '500' }}>{payment.plan}</td>
-                                    <td style={{ padding: '1rem', fontSize: '0.85rem', fontWeight: '600' }}>KSh {Number(payment.amount).toLocaleString()}</td>
+                                    <td style={{ padding: '1rem', fontSize: '0.85rem', fontWeight: '600' }}>$ {Number(payment.amount).toLocaleString()}</td>
                                     <td style={{ padding: '1rem', fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{payment.mpesa_receipt || '---'}</td>
                                     <td style={{ padding: '1rem', textAlign: 'center' }}>
                                         <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', backgroundColor: payment.status === 'Paid' ? 'rgba(56,161,105,0.1)' : payment.status === 'Failed' ? 'rgba(229,62,62,0.1)' : 'rgba(214,158,46,0.1)', color: payment.status === 'Paid' ? 'var(--success)' : payment.status === 'Failed' ? 'var(--danger)' : 'var(--warning)' }}>

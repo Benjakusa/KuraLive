@@ -58,7 +58,7 @@ const AdminBilling = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ borderBottom: `1px solid ${border}` }}>
-                            {['Date', 'Client', 'Package', 'Amount (KSh)', 'M-Pesa Receipt', 'Status', 'Actions'].map(h => (
+                            {['Date', 'Client', 'Package', 'Amount ($)', 'M-Pesa Receipt', 'Status', 'Actions'].map(h => (
                                 <th key={h} style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', textTransform: 'uppercase', color: mutedText }}>{h}</th>
                             ))}
                         </tr>

@@ -63,7 +63,7 @@ const ForcePasswordReset = () => {
 
                 <h2 style={{ marginBottom: 'var(--space-2)' }}>Action Required</h2>
                 <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-6)', fontSize: '0.9rem' }}>
-                    Welcome to KuraLive! For your security, you must set an initial, secure password before accessing your workspace.
+                    Welcome to <span style={{ background: 'linear-gradient(135deg, var(--teal) 0%, var(--aqua) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 700 }}>Uchaguzi</span><span style={{ color: '#e5de00', fontWeight: 700 }}>360</span>! For your security, you must set an initial, secure password before accessing your workspace.
                 </p>
 
                 {error && (

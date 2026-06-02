@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
 import { FaChartPie, FaVoteYea, FaMapMarkedAlt, FaUserFriends, FaSignOutAlt, FaChartBar, FaExclamationTriangle, FaBars, FaTimes, FaFileInvoiceDollar, FaSms, FaCalendarAlt, FaShareAlt, FaPollH } from 'react-icons/fa';
 import UpgradeModal from '../components/UpgradeModal';
+import logolight from '../assets/logo1.png';
 
 const ManagerLayout = () => {
     const { logout } = useAuth();
@@ -125,8 +126,11 @@ const ManagerLayout = () => {
                     >
                         {sidebarOpen ? <FaTimes /> : <FaBars />}
                     </button>
-                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>KuraLive</h2>
-                    <div style={{ width: '24px' }} /> {/* Spacer */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <img src={logolight} alt="" style={{ height: '28px', width: 'auto' }} />
+                        <span style={{ fontWeight: 700, fontSize: '1rem', color: 'white' }}>Uchaguzi</span><span style={{ fontWeight: 700, fontSize: '1rem', color: '#e5de00' }}>360</span>
+                    </div>
+                    <div style={{ width: '24px' }} />
                 </div>
             )}
 
@@ -157,15 +161,21 @@ const ManagerLayout = () => {
             }}>
                 {!isMobile && (
                     <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800' }}>KuraLive</h2>
-                        <span style={{ fontSize: '0.72rem', opacity: 0.75 }}>Manager Portal</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <img src={logolight} alt="" style={{ height: '32px', width: 'auto' }} />
+                            <span style={{ fontWeight: 700, fontSize: '1rem', color: 'white' }}>Uchaguzi</span><span style={{ fontWeight: 700, fontSize: '1rem', color: '#e5de00' }}>360</span>
+                        </div>
+                        <div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: '0.25rem' }}>Manager Portal</div>
                     </div>
                 )}
 
                 {isMobile && (
                     <div style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.2)' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800' }}>KuraLive</h2>
-                        <span style={{ fontSize: '0.7rem', opacity: 0.75 }}>Manager Portal</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <img src={logolight} alt="" style={{ height: '28px', width: 'auto' }} />
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'white' }}>Uchaguzi</span><span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#e5de00' }}>360</span>
+                        </div>
+                        <div style={{ fontSize: '0.7rem', opacity: 0.75, marginTop: '0.25rem' }}>Manager Portal</div>
                     </div>
                 )}
 

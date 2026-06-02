@@ -1,7 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 function getToken() {
-    return localStorage.getItem('kuralive_token');
+    return localStorage.getItem('uchaguzi360_token');
 }
 
 async function request(endpoint, options = {}) {
@@ -194,9 +194,9 @@ export const api = {
 
 export function setToken(token) {
     if (token) {
-        localStorage.setItem('kuralive_token', token);
+        localStorage.setItem('uchaguzi360_token', token);
     } else {
-        localStorage.removeItem('kuralive_token');
+        localStorage.removeItem('uchaguzi360_token');
     }
 }
 

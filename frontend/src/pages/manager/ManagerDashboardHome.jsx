@@ -140,7 +140,7 @@ const ManagerDashboardHome = () => {
                             </div>
                             <div style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)' }}>
                                 {expired
-                                    ? 'Upgrade to continue using KuraLive'
+                                    ? 'Upgrade to continue using Uchaguzi360'
                                     : `${daysLeft} days remaining in your free trial`}
                             </div>
                         </div>
@@ -288,7 +288,7 @@ const ManagerDashboardHome = () => {
                             </div>
                         </div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--teal)' }}>
-                            {currentPlanDetails?.price === 0 ? 'Free' : `KSh ${currentPlanDetails?.price?.toLocaleString()}`}
+                            {currentPlanDetails?.price === 0 ? 'Free' : `$ ${currentPlanDetails?.price?.toLocaleString()}`}
                             <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', fontWeight: 400 }}> /year</span>
                         </div>
                     </div>

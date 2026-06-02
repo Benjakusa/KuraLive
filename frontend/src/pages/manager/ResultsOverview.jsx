@@ -119,7 +119,7 @@ function exportResultsToExcel(candidates, results, stations) {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Results');
-    XLSX.writeFile(wb, 'KuraLive_Results.xlsx');
+    XLSX.writeFile(wb, 'Uchaguzi360_Results.xlsx');
 }
 
 function exportAnalyticsToExcel({ totalRegistered, totalVotesCast, reportingProgress, stationsIn, stations, candidates, aggregatedVotes }) {
@@ -145,7 +145,7 @@ function exportAnalyticsToExcel({ totalRegistered, totalVotesCast, reportingProg
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(candidateRows), 'Candidate Totals');
-    XLSX.writeFile(wb, 'KuraLive_Analytics.xlsx');
+    XLSX.writeFile(wb, 'Uchaguzi360_Analytics.xlsx');
 }
 
 /* ─── PDF from image ──────────────────────────────── */

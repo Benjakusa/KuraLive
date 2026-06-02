@@ -123,10 +123,11 @@ const Login = () => {
                 </div>
 
                 <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
-                    <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)', background: 'linear-gradient(135deg, var(--teal) 0%, var(--aqua) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        KuraLive
+                    <h1 style={{ fontSize: '2rem', marginBottom: 'var(--space-2)', display: 'flex', justifyContent: 'center', gap: '0' }}>
+                        <span style={{ background: 'linear-gradient(135deg, var(--teal) 0%, var(--aqua) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Uchaguzi</span>
+                        <span style={{ color: '#e5de00' }}>360</span>
                     </h1>
-                    <p style={{ color: 'var(--color-text-muted)' }}>Secure Election Management</p>
+                    <p style={{ color: 'var(--color-text-muted)' }}>Campaign Management Platform</p>
                 </div>
 
                 {!showForgotPassword && (

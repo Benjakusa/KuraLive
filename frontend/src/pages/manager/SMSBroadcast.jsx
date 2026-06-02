@@ -401,7 +401,7 @@ function DatabaseTab({ onSelectRecipients, token }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 function SMSBroadcast() {
-    const token = localStorage.getItem('kuralive_token');
+    const token = localStorage.getItem('uchaguzi360_token');
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
     const [activeMode, setActiveMode] = useState('contacts');

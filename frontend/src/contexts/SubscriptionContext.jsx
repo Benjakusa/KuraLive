@@ -10,7 +10,7 @@ export const PLANS = {
         id: 'free',
         name: 'Free Trial',
         price: 0,
-        currency: 'Ksh. ',
+        currency: '$ ',
         maxAgents: 5,
         maxStations: 10,
         period: '',
@@ -19,8 +19,8 @@ export const PLANS = {
     medium: {
         id: 'medium',
         name: 'Professional',
-        price: 4999,
-        currency: 'Ksh. ',
+        price: 199,
+        currency: '$ ',
         period: '/ month',
         maxAgents: Infinity,
         maxStations: Infinity,
@@ -29,8 +29,8 @@ export const PLANS = {
     enterprise: {
         id: 'enterprise',
         name: 'Enterprise',
-        price: 11999,
-        currency: 'Ksh. ',
+        price: 499,
+        currency: '$ ',
         maxAgents: Infinity,
         maxStations: Infinity,
         period: '',
@@ -96,8 +96,8 @@ export const SubscriptionProvider = ({ children }) => {
             const stkResponse = await api.initiateSTKPush({
                 phoneNumber,
                 amount: plan.price,
-                accountReference: `KuraLive-${planId}`,
-                transactionDesc: `KuraLive ${plan.name} Package`,
+                accountReference: `Uchaguzi360-${planId}`,
+                transactionDesc: `Uchaguzi360 ${plan.name} Package`,
                 planId,
             });
 

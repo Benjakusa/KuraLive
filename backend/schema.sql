@@ -1,5 +1,5 @@
 -- =====================================================
--- KuraLive - Full PostgreSQL Schema (Render.com ready)
+-- Uchaguzi360 - Full PostgreSQL Schema (Render.com ready)
 -- Run this in your Render PostgreSQL shell / psql
 -- =====================================================
 
@@ -154,7 +154,7 @@ CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
 -- INSERT INTO users (id, email, password_hash, name, role, admin_secret, force_password_reset)
 -- VALUES (
 --     uuid_generate_v4(),
---     'admin@kuralive.com',
+--     'admin@uchaguzi360.com',
 --     'pbkdf2:sha256:600000$...',  -- Replace with generated hash
 --     'Admin',
 --     'admin',

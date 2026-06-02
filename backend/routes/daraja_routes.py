@@ -46,7 +46,7 @@ def stk_push():
     data = request.get_json()
     phone = data.get("phoneNumber")
     amount = data.get("amount")
-    account_ref = data.get("accountReference", "KuraLive")
+    account_ref = data.get("accountReference", "Uchaguzi360")
     trans_desc = data.get("transactionDesc", "Subscription Payment")
     manager_id = data.get("manager_id", g.current_user["id"])
 
@@ -222,7 +222,7 @@ def send_agent_email():
 
     html = f"""
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #1a202c;">
-        <h2 style="color: #008080;">Welcome to KuraLive, {name}!</h2>
+        <h2 style="color: #008080;">Welcome to Uchaguzi360, {name}!</h2>
         <p>An administrator has created an agent account for you.</p>
         <div style="background-color: #f7fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin: 20px 0;">
             <p style="margin: 0 0 10px 0;"><strong>Login Details:</strong></p>
@@ -239,9 +239,9 @@ def send_agent_email():
         resp = requests.post(
             "https://api.resend.com/emails",
             json={
-                "from": "KuraLive Support <onboarding@resend.dev>",
+                "from": "Uchaguzi360 Support <onboarding@resend.dev>",
                 "to": email,
-                "subject": "Your KuraLive Agent Security Credentials",
+                "subject": "Your Uchaguzi360 Agent Security Credentials",
                 "html": html,
             },
             headers={

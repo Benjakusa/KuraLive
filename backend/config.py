@@ -7,7 +7,7 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-this-in-production")
     DATABASE_URL = os.getenv(
-        "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/kuralive"
+        "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/uchaguzi360"
     )
     DARAJA_CONSUMER_KEY = os.getenv("DARAJA_CONSUMER_KEY")
     DARAJA_CONSUMER_SECRET = os.getenv("DARAJA_CONSUMER_SECRET")
@@ -23,10 +23,15 @@ class Config:
     )
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
+    # Twilio SMS
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
+
     # TalkingAfrica SMS API
     TALKINGAFRICA_BASE_URL = os.getenv("TALKINGAFRICA_BASE_URL", "")
     TALKINGAFRICA_API_KEY = os.getenv("TALKINGAFRICA_API_KEY", "")
-    TALKINGAFRICA_SENDER_ID = os.getenv("TALKINGAFRICA_SENDER_ID", "KuraLive")
+    TALKINGAFRICA_SENDER_ID = os.getenv("TALKINGAFRICA_SENDER_ID", "Uchaguzi360")
     TALKINGAFRICA_SHORTCODE = os.getenv("TALKINGAFRICA_SHORTCODE", "")
 
     # Social Media OAuth

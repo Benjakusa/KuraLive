@@ -3,6 +3,7 @@ import re
 import io
 import hashlib
 import time
+import os
 import requests
 from flask import Blueprint, request, jsonify, g
 from database import query
@@ -18,14 +19,14 @@ E164_RE = re.compile(r"^\+?[1-9]\d{6,14}$")
 def normalize_phone(raw):
     """Normalize to E.164-ish (keep + prefix if present, strip spaces/dashes)."""
     cleaned = re.sub(r"[\s\-\(\).]", "", str(raw).strip())
-    
+
     if re.match(r"^0[17]\d{8}$", cleaned):
         cleaned = "+254" + cleaned[1:]
     elif re.match(r"^254[17]\d{8}$", cleaned):
         cleaned = "+" + cleaned
     elif re.match(r"^[17]\d{8}$", cleaned):
         cleaned = "+254" + cleaned
-        
+
     if E164_RE.match(cleaned):
         return cleaned
     return None
@@ -49,9 +50,9 @@ def send_twilio_sms(recipients, message, campaign_id, manager_id):
     """
     from twilio.rest import Client
 
-    account_sid = "PLACEHOLDER_ACCOUNT_SID"
-    auth_token = "PLACEHOLDER_AUTH_TOKEN"
-    twilio_number = "PLACEHOLDER_PHONE_NUMBER"
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
+    twilio_number = os.getenv("TWILIO_PHONE_NUMBER", "")
 
     client = Client(account_sid, auth_token)
 
@@ -62,12 +63,16 @@ def send_twilio_sms(recipients, message, campaign_id, manager_id):
         # Support both dict-style recipients and plain phone strings
         if isinstance(r, dict):
             number = r.get("phone", "")
-            body = fill_template(
-                message,
-                name=r.get("name", ""),
-                station=r.get("station", ""),
-                county=r.get("county", ""),
-            ) if has_variables else message
+            body = (
+                fill_template(
+                    message,
+                    name=r.get("name", ""),
+                    station=r.get("station", ""),
+                    county=r.get("county", ""),
+                )
+                if has_variables
+                else message
+            )
         else:
             number = r
             body = message
@@ -128,13 +133,18 @@ def list_campaigns():
             fetchone=True,
         )["c"]
 
-    return jsonify({"data": rows or [], "total": total, "page": page, "per_page": per_page})
+    return jsonify(
+        {"data": rows or [], "total": total, "page": page, "per_page": per_page}
+    )
 
 
 @sms_bp.route("/campaigns/<cid>", methods=["DELETE"])
 @manager_required
 def delete_campaign(cid):
-    query("DELETE FROM sms_campaigns WHERE id = %s AND manager_id = %s", (cid, g.current_user["id"]))
+    query(
+        "DELETE FROM sms_campaigns WHERE id = %s AND manager_id = %s",
+        (cid, g.current_user["id"]),
+    )
     return jsonify({"message": "Campaign deleted"})
 
 
@@ -172,7 +182,9 @@ def broadcast():
                 else:
                     valid_recipients.append(phone)
         invalid_count = len(raw_recipients) - len(valid_recipients)
-        phone_list = [r["phone"] if isinstance(r, dict) else r for r in valid_recipients]
+        phone_list = [
+            r["phone"] if isinstance(r, dict) else r for r in valid_recipients
+        ]
     else:
         # Legacy plain-number path
         valid_recipients = []
@@ -212,11 +224,15 @@ def broadcast():
     else:
         sent = failed = 0
 
-    campaign = query("SELECT * FROM sms_campaigns WHERE id = %s", (campaign_id,), fetchone=True)
-    return jsonify({
-        "data": campaign,
-        "invalid_numbers": invalid_count,
-    }), 201
+    campaign = query(
+        "SELECT * FROM sms_campaigns WHERE id = %s", (campaign_id,), fetchone=True
+    )
+    return jsonify(
+        {
+            "data": campaign,
+            "invalid_numbers": invalid_count,
+        }
+    ), 201
 
 
 # ── UPLOAD NUMBERS ────────────────────────────────────
@@ -242,6 +258,7 @@ def upload_numbers():
                         numbers_raw.append(cell)
         elif filename.endswith(".xlsx") or filename.endswith(".xls"):
             import openpyxl
+
             wb = openpyxl.load_workbook(io.BytesIO(f.read()), data_only=True)
             ws = wb.active
             for row in ws.iter_rows(values_only=True):
@@ -265,12 +282,14 @@ def upload_numbers():
     valid_list = list(valid_set.keys())
     preview = valid_list[:10]
 
-    return jsonify({
-        "numbers": valid_list,
-        "count": len(valid_list),
-        "invalid_count": len(invalid),
-        "preview": preview,
-    })
+    return jsonify(
+        {
+            "numbers": valid_list,
+            "count": len(valid_list),
+            "invalid_count": len(invalid),
+            "preview": preview,
+        }
+    )
 
 
 # ── DELIVERY REPORT WEBHOOK ───────────────────────────
@@ -319,5 +338,8 @@ def save_template():
 @sms_bp.route("/templates/<tid>", methods=["DELETE"])
 @manager_required
 def delete_template(tid):
-    query("DELETE FROM sms_templates WHERE id = %s AND manager_id = %s", (tid, g.current_user["id"]))
+    query(
+        "DELETE FROM sms_templates WHERE id = %s AND manager_id = %s",
+        (tid, g.current_user["id"]),
+    )
     return jsonify({"message": "Template deleted"})

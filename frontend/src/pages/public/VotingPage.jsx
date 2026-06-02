@@ -25,13 +25,13 @@ function VotingPage() {
             .then(d => {
                 if (!d.error) {
                     setPoll(d);
-                    if (localStorage.getItem(`kl_poll_voted_${token}`) === "true") {
+                    if (localStorage.getItem(`u360_poll_voted_${token}`) === "true") {
                         setSubmitted(true);
                     }
-                    let hash = localStorage.getItem(`kl_poll_${token}`);
+                    let hash = localStorage.getItem(`u360_poll_${token}`);
                     if (!hash) {
                         hash = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-                        localStorage.setItem(`kl_poll_${token}`, hash);
+                        localStorage.setItem(`u360_poll_${token}`, hash);
                     }
                 } else {
                     setError(d.error || 'Poll not found');
@@ -55,7 +55,7 @@ function VotingPage() {
         setError('');
         setSubmitting(true);
 
-        const hash = localStorage.getItem(`kl_poll_${token}`);
+        const hash = localStorage.getItem(`u360_poll_${token}`);
 
         const r = await fetch(`${API}/api/public/poll/${token}/vote`, {
             method: 'POST',
@@ -72,7 +72,7 @@ function VotingPage() {
         setSubmitting(false);
 
         if (r.ok || r.status === 409 || d.error === 'duplicate') {
-            localStorage.setItem(`kl_poll_voted_${token}`, "true");
+            localStorage.setItem(`u360_poll_voted_${token}`, "true");
             setSubmitted(true);
         } else {
             setError(d.error || 'Failed to submit vote');
@@ -96,9 +96,9 @@ function VotingPage() {
             <div className="card" style={{ padding: '2.5rem 2rem', textAlign: 'center', maxWidth: 400, animation: 'fadeIn 0.5s ease-out' }}>
                 <FaCheckCircle style={{ fontSize: '4rem', color: 'var(--teal)', marginBottom: '1rem' }} />
                 <h2 style={{ margin: '0 0 0.5rem' }}>Thank You!</h2>
-                <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>Your voice has been heard. We appreciate you taking the time to share your opinion with KuraLive.</p>
+                <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>Your voice has been heard. We appreciate you taking the time to share your opinion with Uchaguzi360.</p>
                 <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--color-border)', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                    Powered by KuraLive Secure Polls
+                    Powered by Uchaguzi360 Secure Polls
                 </div>
             </div>
         </div>
@@ -123,7 +123,7 @@ function VotingPage() {
         <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: '2rem 1rem' }}>
             <div style={{ maxWidth: 640, margin: '0 auto' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <div style={{ width: 48, height: 48, background: 'var(--teal)', borderRadius: '50%', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', margin: '0 auto 1rem', fontWeight: 800, fontFamily: 'serif' }}>K:</div>
+                    <div style={{ width: 48, height: 48, background: 'var(--teal)', borderRadius: '50%', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', margin: '0 auto 1rem', fontWeight: 800, fontFamily: 'serif' }}>U:</div>
                     <h1 style={{ fontSize: '1.8rem', margin: '0 0 0.5rem' }}>{poll.title}</h1>
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '1rem', margin: 0 }}>{poll.description}</p>
                 </div>
@@ -220,7 +220,7 @@ function VotingPage() {
                                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1rem', background: 'var(--gray-50)', borderRadius: 8, border: '1px solid var(--color-border)' }}>
                                         <input type="checkbox" id="terms" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)} style={{ width: 18, height: 18, margin: '2px 0 0', accentColor: 'var(--teal)', cursor: 'pointer' }} />
                                         <label htmlFor="terms" style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                                            <strong>Data Consent:</strong> I agree that my responses will be collected anonymously to help gauge public opinion. KuraLive does not collect personally identifying information such as names or phone numbers through this form.
+                                            <strong>Data Consent:</strong> I agree that my responses will be collected anonymously to help gauge public opinion. Uchaguzi360 does not collect personally identifying information such as names or phone numbers through this form.
                                         </label>
                                     </div>
                                 </div>

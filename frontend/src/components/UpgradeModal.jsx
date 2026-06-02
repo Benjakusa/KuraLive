@@ -149,7 +149,7 @@ const UpgradeModal = ({ onClose }) => {
                             </div>
                             <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem' }}>Payment Confirmed</h2>
                             <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
-                                Your payment of KSh {selectedPlan?.price?.toLocaleString()} was received successfully.
+                                Your payment of ${selectedPlan?.price?.toLocaleString()} was received successfully.
                             </p>
                         </div>
 
@@ -172,7 +172,7 @@ const UpgradeModal = ({ onClose }) => {
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Amount Paid</span>
-                                    <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--color-text-main)' }}>KSh {selectedPlan?.price?.toLocaleString()}</span>
+                                    <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--color-text-main)' }}>${selectedPlan?.price?.toLocaleString()}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Package</span>
@@ -271,7 +271,7 @@ const UpgradeModal = ({ onClose }) => {
                         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                             <h2 style={{ margin: '0 0 0.5rem', fontSize: '1.5rem' }}>Complete Payment</h2>
                             <p style={{ color: 'var(--color-text-muted)', margin: 0 }}>
-                                Pay KSh {selectedPlan?.price?.toLocaleString()} for {selectedPlan?.name} package
+                                Pay ${selectedPlan?.price?.toLocaleString()} for {selectedPlan?.name} package
                             </p>
                         </div>
 

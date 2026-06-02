@@ -1,5 +1,5 @@
 -- =====================================================
--- KuraLive - Module Extensions Migration (VARCHAR-compatible)
+-- Uchaguzi360 - Module Extensions Migration (VARCHAR-compatible)
 -- users.id is VARCHAR(36), so all FKs use VARCHAR(36)
 -- =====================================================
 

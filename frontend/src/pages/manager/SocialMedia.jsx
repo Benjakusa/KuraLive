@@ -77,7 +77,7 @@ function DonutChart({ slices, size = 100 }) {
 }
 
 export default function SocialMedia() {
-    const token = localStorage.getItem('kuralive_token');
+    const token = localStorage.getItem('uchaguzi360_token');
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
     const [accounts, setAccounts] = useState([]);

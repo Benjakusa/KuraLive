@@ -107,7 +107,7 @@ const AdminAnalytics = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)', marginBottom: 'var(--space-8)' }}>
-                <SummaryCard title="Total Revenue (KSh)" value={revenue.totalRevenue.toLocaleString()} icon={<FaWallet />} color="var(--turquoise-bright)" />
+                <SummaryCard title="Total Revenue ($)" value={revenue.totalRevenue.toLocaleString()} icon={<FaWallet />} color="var(--turquoise-bright)" />
                 <SummaryCard title="Active Plans (Paid)" value={`${plans.medium + plans.enterprise}`} icon={<FaCrown />} color="var(--teal)" />
                 <SummaryCard title="Free Trials" value={`${plans.free}`} icon={<FaUsers />} color="var(--aqua)" />
                 <SummaryCard title="Transactions" value={`${revenue.transactions}`} icon={<FaMoneyBillWave />} color="var(--success)" />
@@ -143,7 +143,7 @@ const AdminAnalytics = () => {
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
                                         <div style={{ fontSize: '0.85rem', fontWeight: '600', color: payment.status === 'Paid' ? 'var(--success)' : 'var(--warning)' }}>
-                                            KSh {Number(payment.amount).toLocaleString()}
+                                            $ {Number(payment.amount).toLocaleString()}
                                         </div>
                                         <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>{payment.status}</div>
                                     </div>

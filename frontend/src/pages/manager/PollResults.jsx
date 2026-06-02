@@ -9,7 +9,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 function PollResults() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const token = localStorage.getItem('kuralive_token');
+    const token = localStorage.getItem('uchaguzi360_token');
     const headers = { Authorization: `Bearer ${token}` };
 
     const [poll, setPoll] = useState(null);

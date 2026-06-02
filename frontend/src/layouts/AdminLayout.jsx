@@ -3,6 +3,8 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaShieldAlt, FaUsers, FaChartLine, FaSignOutAlt, FaDatabase, FaCog, FaSun, FaMoon, FaBars, FaTimes, FaFileInvoiceDollar } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import logolight from '../assets/logo1.png';
+import logodark from '../assets/logo3.png';
 
 const AdminLayout = () => {
     const { logout } = useAuth();
@@ -59,11 +61,9 @@ const AdminLayout = () => {
                     <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', color: logoTextColor, fontSize: '1.5rem', cursor: 'pointer', padding: '4px' }}>
                         {sidebarOpen ? <FaTimes /> : <FaBars />}
                     </button>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--teal), #004D4D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <FaShieldAlt style={{ color: '#fff', fontSize: '0.8rem' }} />
-                        </div>
-                        <span style={{ fontSize: '1rem', fontWeight: 800, color: logoTextColor }}>KuraLive</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <img src={darkMode ? logodark : logolight} alt="" style={{ height: '28px', width: 'auto' }} />
+                        <span style={{ fontWeight: 700, fontSize: '1rem', color: logoTextColor }}>Uchaguzi</span><span style={{ fontWeight: 700, fontSize: '1rem', color: '#e5de00' }}>360</span>
                     </div>
                     <div style={{ width: '24px' }} />
                 </div>
@@ -89,28 +89,18 @@ const AdminLayout = () => {
             }}>
                 {!isMobile && (
                     <div style={{ padding: '1.5rem', borderBottom: `1px solid ${darkMode ? 'rgba(0,230,230,0.1)' : '#e2e8f0'}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, var(--teal), #004D4D)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 16px rgba(0,128,128,0.3)' }}>
-                                <FaShieldAlt style={{ color: '#fff', fontSize: '1rem' }} />
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: logoTextColor, letterSpacing: '0.03em' }}>KuraLive</div>
-                                <div style={{ fontSize: '0.65rem', color: logoSubColor, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Admin Console</div>
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <img src={darkMode ? logodark : logolight} alt="" style={{ height: '36px', width: 'auto' }} />
+                            <span style={{ fontWeight: 700, fontSize: '1.1rem', color: logoTextColor }}>Uchaguzi</span><span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#e5de00' }}>360</span>
                         </div>
                     </div>
                 )}
 
                 {isMobile && (
                     <div style={{ padding: '1rem', borderBottom: `1px solid ${darkMode ? 'rgba(0,230,230,0.1)' : '#e2e8f0'}` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg, var(--teal), #004D4D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <FaShieldAlt style={{ color: '#fff', fontSize: '0.8rem' }} />
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '1rem', fontWeight: 800, color: logoTextColor }}>KuraLive</div>
-                                <div style={{ fontSize: '0.6rem', color: logoSubColor, textTransform: 'uppercase' }}>Admin Console</div>
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <img src={darkMode ? logodark : logolight} alt="" style={{ height: '28px', width: 'auto' }} />
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: logoTextColor }}>Uchaguzi</span><span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#e5de00' }}>360</span>
                         </div>
                     </div>
                 )}
@@ -130,7 +120,7 @@ const AdminLayout = () => {
                                         color: isActive ? navActiveColor : navInactiveColor,
                                         fontWeight: isActive ? 600 : 400, fontSize: isMobile ? '1rem' : '0.875rem',
                                     }}>
-                                        <span style={{ fontSize: '1rem' }}>{item.icon}</span>
+                                        <span style={{ fontSize: '1rem', color: darkMode ? '#e5de00' : 'inherit' }}>{item.icon}</span>
                                         <span>{item.label}</span>
                                     </Link>
                                 </li>
@@ -148,7 +138,7 @@ const AdminLayout = () => {
                         color: darkMode ? 'rgba(255,255,255,0.6)' : '#4a5568',
                         cursor: 'pointer', fontSize: '0.875rem', fontFamily: 'inherit', transition: 'all 0.2s',
                     }}>
-                        {darkMode ? <FaSun style={{ color: '#f6c90e' }} /> : <FaMoon />}
+                        {darkMode ? <FaSun style={{ color: '#e5de00' }} /> : <FaMoon />}
                         {darkMode ? 'Light Mode' : 'Dark Mode'}
                     </button>
                     <button onClick={handleLogout} style={{
