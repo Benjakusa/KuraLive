@@ -1,14 +1,15 @@
 -- =====================================================
--- Uchaguzi360 - Module Extensions Migration (VARCHAR-compatible)
--- users.id is VARCHAR(36), so all FKs use VARCHAR(36)
+-- Uchaguzi360 - Module Extensions Migration (UUID)
 -- =====================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
 -- MODULE 1: SMS CAMPAIGNS
 -- =====================================================
 CREATE TABLE IF NOT EXISTS sms_campaigns (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     message TEXT NOT NULL,
     recipient_count INTEGER DEFAULT 0,
     sent_count INTEGER DEFAULT 0,
@@ -21,8 +22,8 @@ CREATE TABLE IF NOT EXISTS sms_campaigns (
 );
 
 CREATE TABLE IF NOT EXISTS sms_templates (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -32,8 +33,8 @@ CREATE TABLE IF NOT EXISTS sms_templates (
 -- MODULE 2: CAMPAIGN PLANNER
 -- =====================================================
 CREATE TABLE IF NOT EXISTS campaign_events (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title VARCHAR(200) NOT NULL,
     type VARCHAR(20) DEFAULT 'other' CHECK (type IN ('rally', 'canvassing', 'media', 'meeting', 'other')),
     location VARCHAR(300),
@@ -47,11 +48,11 @@ CREATE TABLE IF NOT EXISTS campaign_events (
 );
 
 CREATE TABLE IF NOT EXISTS campaign_tasks (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    event_id VARCHAR(36) REFERENCES campaign_events(id) ON DELETE SET NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES campaign_events(id) ON DELETE SET NULL,
     title VARCHAR(300) NOT NULL,
-    assignee_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
+    assignee_id UUID REFERENCES users(id) ON DELETE SET NULL,
     assignee_name VARCHAR(100),
     due_date DATE,
     status VARCHAR(20) DEFAULT 'todo' CHECK (status IN ('todo', 'in_progress', 'done')),
@@ -64,8 +65,8 @@ CREATE TABLE IF NOT EXISTS campaign_tasks (
 -- MODULE 3: SOCIAL MEDIA MANAGEMENT
 -- =====================================================
 CREATE TABLE IF NOT EXISTS social_accounts (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platform VARCHAR(30) NOT NULL CHECK (platform IN ('facebook', 'twitter', 'instagram', 'tiktok')),
     handle VARCHAR(200),
     page_id VARCHAR(200),
@@ -80,8 +81,8 @@ CREATE TABLE IF NOT EXISTS social_accounts (
 );
 
 CREATE TABLE IF NOT EXISTS scheduled_posts (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platforms JSONB DEFAULT '[]',
     content_text TEXT NOT NULL,
     media_urls JSONB DEFAULT '[]',
@@ -93,8 +94,8 @@ CREATE TABLE IF NOT EXISTS scheduled_posts (
 );
 
 CREATE TABLE IF NOT EXISTS social_metrics (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platform VARCHAR(30) NOT NULL,
     date DATE NOT NULL,
     followers INTEGER DEFAULT 0,
@@ -107,8 +108,8 @@ CREATE TABLE IF NOT EXISTS social_metrics (
 );
 
 CREATE TABLE IF NOT EXISTS social_mentions (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platform VARCHAR(30) NOT NULL,
     keyword VARCHAR(200),
     text TEXT,
@@ -120,16 +121,16 @@ CREATE TABLE IF NOT EXISTS social_mentions (
 );
 
 CREATE TABLE IF NOT EXISTS social_keywords (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     keyword VARCHAR(200) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(manager_id, keyword)
 );
 
 CREATE TABLE IF NOT EXISTS social_competitors (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platform VARCHAR(30) NOT NULL,
     handle VARCHAR(200) NOT NULL,
     follower_count INTEGER DEFAULT 0,
@@ -143,9 +144,9 @@ CREATE TABLE IF NOT EXISTS social_competitors (
 -- MODULE 4: OPINION POLLS
 -- =====================================================
 CREATE TABLE IF NOT EXISTS polls (
-    id VARCHAR(36) PRIMARY KEY,
-    manager_id VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    election_id VARCHAR(36) REFERENCES elections(id) ON DELETE SET NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    manager_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    election_id UUID REFERENCES elections(id) ON DELETE SET NULL,
     title VARCHAR(300) NOT NULL,
     description TEXT,
     questions JSONB DEFAULT '[]',
@@ -158,8 +159,8 @@ CREATE TABLE IF NOT EXISTS polls (
 );
 
 CREATE TABLE IF NOT EXISTS poll_votes (
-    id VARCHAR(36) PRIMARY KEY,
-    poll_id VARCHAR(36) NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    poll_id UUID NOT NULL REFERENCES polls(id) ON DELETE CASCADE,
     session_hash VARCHAR(64) NOT NULL,
     answers JSONB NOT NULL DEFAULT '{}',
     voter_status VARCHAR(20) DEFAULT 'unregistered' CHECK (voter_status IN ('registered', 'unregistered')),
