@@ -1,11 +1,27 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
 from config import Config
 import os
 
 app = Flask(__name__)
 app.config.from_object(Config)
-CORS(app, supports_credentials=True)
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        "https://uchaguzi360.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:5000",
+    ],
+)
+
+
+@app.route("/")
+def home():
+    return jsonify(
+        {"status": "ok", "message": "Uchaguzi360 API is running", "docs": "/api"}
+    )
+
 
 from routes.auth_routes import auth_bp
 from routes.api_routes import api_bp
