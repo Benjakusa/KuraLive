@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { FaCheckCircle, FaSpinner, FaLock, FaMapMarkerAlt, FaFileContract } from 'react-icons/fa';
 import { kenyaLocations } from '../../utils/kenyaLocations';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 function VotingPage() {
     const { token } = useParams();
@@ -20,7 +20,7 @@ function VotingPage() {
     const [agreeTerms, setAgreeTerms] = useState(false);
 
     useEffect(() => {
-        fetch(`${API}/api/public/poll/${token}`)
+        fetch(`${API}/public/poll/${token}`)
             .then(r => r.json())
             .then(d => {
                 if (!d.error) {
@@ -57,7 +57,7 @@ function VotingPage() {
 
         const hash = localStorage.getItem(`u360_poll_${token}`);
 
-        const r = await fetch(`${API}/api/public/poll/${token}/vote`, {
+        const r = await fetch(`${API}/public/poll/${token}/vote`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

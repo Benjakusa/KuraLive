@@ -7,7 +7,7 @@ import {
 } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const PLATFORMS = [
     { key: 'facebook', label: 'Facebook', icon: <FaFacebook />, color: '#1877f2', limit: 63206 },
@@ -107,12 +107,12 @@ export default function SocialMedia() {
 
     async function fetchAll() {
         const [ar, pr, mr, mnr, kr, cr] = await Promise.all([
-            fetch(`${API}/api/social/accounts`, { headers }).then(r => r.json()),
-            fetch(`${API}/api/social/posts`, { headers }).then(r => r.json()),
-            fetch(`${API}/api/social/metrics?days=${daysRange}`, { headers }).then(r => r.json()),
-            fetch(`${API}/api/social/mentions`, { headers }).then(r => r.json()),
-            fetch(`${API}/api/social/keywords`, { headers }).then(r => r.json()),
-            fetch(`${API}/api/social/competitors`, { headers }).then(r => r.json()),
+            fetch(`${API}/social/accounts`, { headers }).then(r => r.json()),
+            fetch(`${API}/social/posts`, { headers }).then(r => r.json()),
+            fetch(`${API}/social/metrics?days=${daysRange}`, { headers }).then(r => r.json()),
+            fetch(`${API}/social/mentions`, { headers }).then(r => r.json()),
+            fetch(`${API}/social/keywords`, { headers }).then(r => r.json()),
+            fetch(`${API}/social/competitors`, { headers }).then(r => r.json()),
         ]);
         setAccounts(ar.data || []);
         setPosts(pr.data || []);
@@ -126,7 +126,7 @@ export default function SocialMedia() {
         if (!postText.trim()) return;
         setSavingPost(true);
         setPostStatus('');
-        const r = await fetch(`${API}/api/social/posts`, {
+        const r = await fetch(`${API}/social/posts`, {
             method: 'POST', headers,
             body: JSON.stringify({ content_text: postText, platforms: selectedPlatforms, scheduled_at: postSchedule || null, status: postSchedule ? 'scheduled' : 'draft' }),
         });
@@ -136,31 +136,31 @@ export default function SocialMedia() {
     }
 
     async function deletePost(id) {
-        await fetch(`${API}/api/social/posts/${id}`, { method: 'DELETE', headers });
+        await fetch(`${API}/social/posts/${id}`, { method: 'DELETE', headers });
         fetchAll();
     }
 
     async function addKeyword() {
         if (!newKeyword.trim()) return;
-        await fetch(`${API}/api/social/keywords`, { method: 'POST', headers, body: JSON.stringify({ keyword: newKeyword }) });
+        await fetch(`${API}/social/keywords`, { method: 'POST', headers, body: JSON.stringify({ keyword: newKeyword }) });
         setNewKeyword('');
         fetchAll();
     }
 
     async function deleteKeyword(id) {
-        await fetch(`${API}/api/social/keywords/${id}`, { method: 'DELETE', headers });
+        await fetch(`${API}/social/keywords/${id}`, { method: 'DELETE', headers });
         fetchAll();
     }
 
     async function addCompetitor() {
         if (!newCompetitor.handle) return;
-        await fetch(`${API}/api/social/competitors`, { method: 'POST', headers, body: JSON.stringify(newCompetitor) });
+        await fetch(`${API}/social/competitors`, { method: 'POST', headers, body: JSON.stringify(newCompetitor) });
         setNewCompetitor({ handle: '', platform: 'twitter' });
         fetchAll();
     }
 
     async function deleteCompetitor(id) {
-        await fetch(`${API}/api/social/competitors/${id}`, { method: 'DELETE', headers });
+        await fetch(`${API}/social/competitors/${id}`, { method: 'DELETE', headers });
         fetchAll();
     }
 
