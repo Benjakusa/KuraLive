@@ -33,7 +33,6 @@ const AdminSettings = () => {
             message: 'This will clear all locally cached data and refresh connections. You will need to reload data manually.',
             action: () => {
                 localStorage.clear();
-                sessionStorage.clear();
                 setConfirmDialog(null);
                 setSaveStatus('saved');
                 setTimeout(() => setSaveStatus(''), 2000);
@@ -66,8 +65,7 @@ const AdminSettings = () => {
                 try {
                     const { default: api } = await import('../../lib/api');
                     await api.logout();
-                } catch (e) {}
-                sessionStorage.removeItem('admin_session');
+                } catch (e) { }
                 window.location.href = '/admin-login';
             }
         });

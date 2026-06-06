@@ -24,7 +24,18 @@ const ForcePasswordReset = () => {
             setError('Password must be at least 8 characters long.');
             return;
         }
-
+        if (!/[A-Z]/.test(password)) {
+            setError('Password must contain an uppercase letter.');
+            return;
+        }
+        if (!/[a-z]/.test(password)) {
+            setError('Password must contain a lowercase letter.');
+            return;
+        }
+        if (!/[0-9]/.test(password)) {
+            setError('Password must contain a number.');
+            return;
+        }
         if (password !== confirmPassword) {
             setError('Passwords do not match.');
             return;
@@ -32,10 +43,13 @@ const ForcePasswordReset = () => {
 
         setLoading(true);
         try {
-            await api.resetPassword(password);
+            await api.changePassword('', password);
             setSuccess('Password updated successfully! Redirecting...');
             setTimeout(() => {
-                navigate('/agent');
+                const role = currentUser?.role;
+                if (role === 'manager') navigate('/manager');
+                else if (role === 'admin') navigate('/admin');
+                else navigate('/agent');
             }, 1500);
         } catch (err) {
             console.error('Password reset failed', err);

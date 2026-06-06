@@ -1,109 +1,26 @@
 import json
-import re
 import io
-import hashlib
-import time
 import os
+import time
 import requests
+import logging
 from flask import Blueprint, request, jsonify, g
 from database import query
 from utils.decorators import manager_required
-from utils.helpers import generate_uuid
+from utils.helpers import generate_uuid, normalize_phone, fill_template
+from services.sms_service import send_twilio_sms, process_queued_campaign
 from config import Config
 
+logger = logging.getLogger(__name__)
+
 sms_bp = Blueprint("sms", __name__)
-
-E164_RE = re.compile(r"^\+?[1-9]\d{6,14}$")
-
-
-def normalize_phone(raw):
-    """Normalize to E.164-ish (keep + prefix if present, strip spaces/dashes)."""
-    cleaned = re.sub(r"[\s\-\(\).]", "", str(raw).strip())
-
-    if re.match(r"^0[17]\d{8}$", cleaned):
-        cleaned = "+254" + cleaned[1:]
-    elif re.match(r"^254[17]\d{8}$", cleaned):
-        cleaned = "+" + cleaned
-    elif re.match(r"^[17]\d{8}$", cleaned):
-        cleaned = "+254" + cleaned
-
-    if E164_RE.match(cleaned):
-        return cleaned
-    return None
-
-
-def fill_template(message, name="", station="", county=""):
-    """Replace {{name}}, {{station}}, {{county}} placeholders in a message."""
-    msg = message
-    msg = msg.replace("{{name}}", name or "Voter")
-    msg = msg.replace("{{station}}", station or "your polling station")
-    msg = msg.replace("{{county}}", county or "your county")
-    return msg
-
-
-def send_twilio_sms(recipients, message, campaign_id, manager_id):
-    """
-    Send SMS via Twilio to a list of recipient dicts:
-      [{"phone": "+254...", "name": "", "station": "", "county": ""}, ...]
-    Also accepts a plain list of phone-number strings (legacy).
-    Returns (sent_count, failed_count).
-    """
-    from twilio.rest import Client
-
-    account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
-    auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
-    twilio_number = os.getenv("TWILIO_PHONE_NUMBER", "")
-
-    client = Client(account_sid, auth_token)
-
-    sent, failed = 0, 0
-    has_variables = any(v in message for v in ["{{name}}", "{{station}}", "{{county}}"])
-
-    for r in recipients:
-        # Support both dict-style recipients and plain phone strings
-        if isinstance(r, dict):
-            number = r.get("phone", "")
-            body = (
-                fill_template(
-                    message,
-                    name=r.get("name", ""),
-                    station=r.get("station", ""),
-                    county=r.get("county", ""),
-                )
-                if has_variables
-                else message
-            )
-        else:
-            number = r
-            body = message
-
-        if not number:
-            failed += 1
-            continue
-
-        try:
-            client.messages.create(body=body, from_=twilio_number, to=number)
-            sent += 1
-        except Exception as e:
-            print(f"[Twilio SMS] Failed for {number}: {e}")
-            failed += 1
-
-    # Update campaign counts
-    query(
-        "UPDATE sms_campaigns SET sent_count = %s, failed_count = %s WHERE id = %s",
-        (sent, failed, campaign_id),
-    )
-    return sent, failed
-
-
-# ── CAMPAIGNS LIST ────────────────────────────────────
 
 
 @sms_bp.route("/campaigns", methods=["GET"])
 @manager_required
 def list_campaigns():
     page = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 20))
+    per_page = min(int(request.args.get("per_page", 20)), 100)
     search = request.args.get("search", "")
     offset = (page - 1) * per_page
     mid = g.current_user["id"]
@@ -148,13 +65,13 @@ def delete_campaign(cid):
     return jsonify({"message": "Campaign deleted"})
 
 
-# ── BROADCAST ─────────────────────────────────────────
-
-
 @sms_bp.route("/broadcast", methods=["POST"])
 @manager_required
 def broadcast():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+
     message = (data.get("message") or "").strip()
     scheduled_at = data.get("scheduled_at")
 
@@ -164,13 +81,10 @@ def broadcast():
     mid = g.current_user["id"]
     campaign_id = generate_uuid()
 
-    # Support rich recipients (list of dicts with phone/name/station/county)
-    # or legacy plain numbers list
     raw_recipients = data.get("recipients") or []
     raw_numbers = data.get("numbers", [])
 
     if raw_recipients:
-        # Validate & normalise phones within the dicts
         valid_recipients = []
         seen = set()
         for r in raw_recipients:
@@ -186,7 +100,6 @@ def broadcast():
             r["phone"] if isinstance(r, dict) else r for r in valid_recipients
         ]
     else:
-        # Legacy plain-number path
         valid_recipients = []
         seen = set()
         for raw in raw_numbers:
@@ -200,10 +113,11 @@ def broadcast():
     if not valid_recipients:
         return jsonify({"error": "No valid recipient numbers provided"}), 400
 
-    query(
+    campaign = query(
         """INSERT INTO sms_campaigns
            (id, manager_id, message, recipient_count, status, recipient_numbers, scheduled_at)
-           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+           VALUES (%s, %s, %s, %s, %s, %s, %s)
+           RETURNING *""",
         (
             campaign_id,
             mid,
@@ -213,29 +127,27 @@ def broadcast():
             json.dumps(phone_list),
             scheduled_at,
         ),
+        fetchone=True
     )
 
     if not scheduled_at:
-        sent, failed = send_twilio_sms(valid_recipients, message, campaign_id, mid)
-        query(
-            "UPDATE sms_campaigns SET status = 'sent', sent_at = NOW(), sent_count = %s, failed_count = %s WHERE id = %s",
-            (sent, failed, campaign_id),
-        )
-    else:
-        sent = failed = 0
+        MAX_SYNC_RECIPIENTS = 50
+        if len(valid_recipients) > MAX_SYNC_RECIPIENTS:
+            query(
+                "UPDATE sms_campaigns SET status = 'queued' WHERE id = %s",
+                (campaign_id,),
+            )
+            logger.info(
+                f"Campaign {campaign_id} queued for async processing ({len(valid_recipients)} recipients)"
+            )
+        else:
+            sent, failed = send_twilio_sms(valid_recipients, message, campaign_id, mid)
+            query(
+                "UPDATE sms_campaigns SET status = 'sent', sent_at = NOW(), sent_count = %s, failed_count = %s WHERE id = %s",
+                (sent, failed, campaign_id),
+            )
 
-    campaign = query(
-        "SELECT * FROM sms_campaigns WHERE id = %s", (campaign_id,), fetchone=True
-    )
-    return jsonify(
-        {
-            "data": campaign,
-            "invalid_numbers": invalid_count,
-        }
-    ), 201
-
-
-# ── UPLOAD NUMBERS ────────────────────────────────────
+    return jsonify({"data": campaign, "invalid_numbers": invalid_count}), 201
 
 
 @sms_bp.route("/upload-numbers", methods=["POST"])
@@ -245,7 +157,7 @@ def upload_numbers():
         return jsonify({"error": "No file uploaded"}), 400
 
     f = request.files["file"]
-    filename = f.filename.lower()
+    filename = f.filename.lower() if f.filename else ""
     numbers_raw = []
 
     try:
@@ -256,15 +168,16 @@ def upload_numbers():
                     cell = cell.strip().strip('"').strip("'")
                     if cell:
                         numbers_raw.append(cell)
-        elif filename.endswith(".xlsx") or filename.endswith(".xls"):
+        elif filename.endswith((".xlsx", ".xls")):
             import openpyxl
 
             wb = openpyxl.load_workbook(io.BytesIO(f.read()), data_only=True)
             ws = wb.active
-            for row in ws.iter_rows(values_only=True):
-                for cell in row:
-                    if cell is not None:
-                        numbers_raw.append(str(cell))
+            if ws:
+                for row in ws.iter_rows(values_only=True):
+                    for cell in row:
+                        if cell is not None:
+                            numbers_raw.append(str(cell))
         else:
             return jsonify({"error": "Only CSV and XLSX files are supported"}), 400
     except Exception as e:
@@ -292,19 +205,11 @@ def upload_numbers():
     )
 
 
-# ── DELIVERY REPORT WEBHOOK ───────────────────────────
-
-
 @sms_bp.route("/delivery-report", methods=["POST"])
 def delivery_report():
     data = request.get_json() or request.form.to_dict()
-    # TalkingAfrica sends: messageId, status, phoneNumber
-    print(f"[SMS Delivery] {data}")
-    # Update individual message status if tracked in future
+    logger.info(f"[SMS Delivery] {data}")
     return jsonify({"ok": True})
-
-
-# ── TEMPLATES ─────────────────────────────────────────
 
 
 @sms_bp.route("/templates", methods=["GET"])
@@ -322,16 +227,20 @@ def list_templates():
 @manager_required
 def save_template():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+
     name = (data.get("name") or "").strip()
     content = (data.get("content") or "").strip()
     if not name or not content:
         return jsonify({"error": "Name and content required"}), 400
+
     tid = generate_uuid()
-    query(
-        "INSERT INTO sms_templates (id, manager_id, name, content) VALUES (%s, %s, %s, %s)",
+    row = query(
+        "INSERT INTO sms_templates (id, manager_id, name, content) VALUES (%s, %s, %s, %s) RETURNING *",
         (tid, g.current_user["id"], name, content),
+        fetchone=True
     )
-    row = query("SELECT * FROM sms_templates WHERE id = %s", (tid,), fetchone=True)
     return jsonify({"data": row}), 201
 
 

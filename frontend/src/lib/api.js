@@ -1,20 +1,15 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'https://uchaguzi360.onrender.com/api';
-
-function getToken() {
-    return localStorage.getItem('uchaguzi360_token');
-}
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 async function request(endpoint, options = {}) {
-    const token = getToken();
     const headers = {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers,
     };
 
     const config = {
         ...options,
         headers,
+        credentials: 'include',
     };
 
     if (config.body && typeof config.body === 'object' && !(config.body instanceof FormData)) {
@@ -28,7 +23,7 @@ async function request(endpoint, options = {}) {
         try {
             const errData = await response.json();
             errorMsg = errData.error || errData.message || errorMsg;
-        } catch (e) {}
+        } catch (e) { }
         throw new Error(errorMsg);
     }
 
@@ -40,9 +35,8 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
-    // Auth
-    login: (email, password) =>
-        request('/auth/login', { method: 'POST', body: { email, password } }),
+    login: (email, password, adminSecret) =>
+        request('/auth/login', { method: 'POST', body: { email, password, admin_secret: adminSecret } }),
 
     signup: (email, password, role, name) =>
         request('/auth/signup', { method: 'POST', body: { email, password, role, name } }),
@@ -50,23 +44,27 @@ export const api = {
     logout: () =>
         request('/auth/logout', { method: 'POST' }),
 
+    logoutAll: () =>
+        request('/auth/logout-all', { method: 'POST' }),
+
     getMe: () =>
         request('/auth/me'),
 
     forgotPassword: (email) =>
         request('/auth/forgot-password', { method: 'POST', body: { email } }),
 
-    resetWithToken: (resetToken, password) =>
-        request('/auth/reset-with-token', { method: 'POST', body: { reset_token: resetToken, password } }),
+    resetPassword: (token, password) =>
+        request('/auth/reset-password', { method: 'POST', body: { token, password } }),
 
-    resetPassword: (password) =>
-        request('/auth/reset-password', { method: 'POST', body: { password } }),
+    resetWithToken: (token, password) =>
+        request('/auth/reset-password', { method: 'POST', body: { token, password } }),
 
-    // Profile
+    changePassword: (currentPassword, newPassword) =>
+        request('/auth/change-password', { method: 'POST', body: { current_password: currentPassword, new_password: newPassword } }),
+
     getProfile: () =>
         request('/profile'),
 
-    // Elections
     getElection: (managerId) => {
         const params = managerId ? `?manager_id=${managerId}` : '';
         return request(`/elections${params}`);
@@ -75,10 +73,10 @@ export const api = {
     saveElection: (details, managerId) =>
         request('/elections', { method: 'POST', body: { details, manager_id: managerId } }),
 
-    // Stations
-    getStations: (managerId, currentUser) => {
-        const params = managerId ? `?manager_id=${managerId}` : '';
-        return request(`/stations${params}`);
+    getStations: (managerId, limit = 1000, offset = 0) => {
+        const params = new URLSearchParams({ limit, offset });
+        if (managerId) params.append('manager_id', managerId);
+        return request(`/stations?${params.toString()}`);
     },
 
     addStation: (station, managerId) =>
@@ -87,10 +85,10 @@ export const api = {
     deleteStation: (id) =>
         request(`/stations/${id}`, { method: 'DELETE' }),
 
-    // Agents
-    getAgents: (managerId, currentUser) => {
-        const params = managerId ? `?manager_id=${managerId}` : '';
-        return request(`/agents${params}`);
+    getAgents: (managerId, limit = 1000, offset = 0) => {
+        const params = new URLSearchParams({ limit, offset });
+        if (managerId) params.append('manager_id', managerId);
+        return request(`/agents?${params.toString()}`);
     },
 
     addAgent: (agent, managerId) =>
@@ -102,25 +100,24 @@ export const api = {
     deleteAgent: (id) =>
         request(`/agents/${id}`, { method: 'DELETE' }),
 
-    // Results
-    getResults: (managerId) => {
-        const params = managerId ? `?manager_id=${managerId}` : '';
-        return request(`/results${params}`);
+    getResults: (managerId, limit = 1000, offset = 0) => {
+        const params = new URLSearchParams({ limit, offset });
+        if (managerId) params.append('manager_id', managerId);
+        return request(`/results?${params.toString()}`);
     },
 
     submitResult: (result, managerId) =>
         request('/results', { method: 'POST', body: { ...result, manager_id: managerId } }),
 
-    // Upload
-    uploadProof: async (file, agentId) => {
-        const token = getToken();
+    uploadProof: async (file) => {
         const formData = new FormData();
         formData.append('file', file);
 
         const response = await fetch(`${API_BASE}/upload`, {
             method: 'POST',
-            headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+            headers: {},
             body: formData,
+            credentials: 'include',
         });
 
         if (!response.ok) throw new Error('Upload failed');
@@ -128,7 +125,6 @@ export const api = {
         return data.url;
     },
 
-    // Subscriptions
     getSubscription: () =>
         request('/subscriptions'),
 
@@ -141,7 +137,6 @@ export const api = {
     getPaymentHistory: () =>
         request('/payment-history'),
 
-    // Daraja
     initiateSTKPush: (payload) =>
         request('/daraja/stk-push', { method: 'POST', body: payload }),
 
@@ -151,7 +146,6 @@ export const api = {
     sendAgentEmail: (payload) =>
         request('/daraja/send-email', { method: 'POST', body: payload }),
 
-    // Admin
     getAdminStats: () =>
         request('/admin/stats'),
 
@@ -186,22 +180,16 @@ export const api = {
         request('/admin/table-counts'),
 
     checkHealth: () =>
-        request('/admin/health'),
+        request('/health'),
 
     getManagers: () =>
         request('/managers'),
 };
 
-export function setToken(token) {
-    if (token) {
-        localStorage.setItem('uchaguzi360_token', token);
-    } else {
-        localStorage.removeItem('uchaguzi360_token');
-    }
-}
+export function setToken(token) { }
 
 export function getTokenValue() {
-    return getToken();
+    return null;
 }
 
 export default api;

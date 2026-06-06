@@ -1,36 +1,40 @@
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { DataProvider } from './contexts/DataContext';
+
+// Eager load only critical entry points
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import AdminLogin from './pages/AdminLogin';
-import AdminLayout from './layouts/AdminLayout';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminClients from './pages/admin/AdminClients';
-import AdminAnalytics from './pages/admin/AdminAnalytics';
-import AdminBilling from './pages/admin/AdminBilling';
-import AdminDatabase from './pages/admin/AdminDatabase';
-import AdminSettings from './pages/admin/AdminSettings';
-import ManagerLayout from './layouts/ManagerLayout';
-import ManagerDashboardHome from './pages/manager/ManagerDashboardHome';
-import ElectionSetup from './pages/manager/ElectionSetup';
-import PollingStations from './pages/manager/PollingStations';
-import ResultsOverview from './pages/manager/ResultsOverview';
-import AgentManagement from './pages/manager/AgentManagement';
-import ManagerBilling from './pages/manager/ManagerBilling';
-import AgentLayout from './layouts/AgentLayout';
-import AgentDashboard from './pages/AgentDashboard';
 import ForcePasswordReset from './pages/ForcePasswordReset';
-import NotFound from './pages/NotFound';
+import VotingPage from "./pages/public/VotingPage";
 
-// New Pages
-import SMSBroadcast from './pages/manager/SMSBroadcast';
+// Lazy load all heavy dashboard layouts and pages
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminClients = lazy(() => import('./pages/admin/AdminClients'));
+const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
+const AdminBilling = lazy(() => import('./pages/admin/AdminBilling'));
+const AdminDatabase = lazy(() => import('./pages/admin/AdminDatabase'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const ManagerLayout = lazy(() => import('./layouts/ManagerLayout'));
+const ManagerDashboardHome = lazy(() => import('./pages/manager/ManagerDashboardHome'));
+const ElectionSetup = lazy(() => import('./pages/manager/ElectionSetup'));
+const PollingStations = lazy(() => import('./pages/manager/PollingStations'));
+const ResultsOverview = lazy(() => import('./pages/manager/ResultsOverview'));
+const AgentManagement = lazy(() => import('./pages/manager/AgentManagement'));
+const ManagerBilling = lazy(() => import('./pages/manager/ManagerBilling'));
+const AgentLayout = lazy(() => import('./layouts/AgentLayout'));
+const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
-import SocialMedia from './pages/manager/SocialMedia';
-import PollManager from './pages/manager/PollManager';
-import PollResults from './pages/manager/PollResults';
-import VotingPage from './pages/public/VotingPage';
+// New Manager Pages
+const SMSBroadcast = lazy(() => import('./pages/manager/SMSBroadcast'));
+const SocialMedia = lazy(() => import('./pages/manager/SocialMedia'));
+const PollManager = lazy(() => import('./pages/manager/PollManager'));
+const PollResults = lazy(() => import('./pages/manager/PollResults'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -49,14 +53,13 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 
-// Admin Protected Route - uses session storage + backend auth
+// Admin Protected Route - relies strictly on backend HttpOnly cookie auth
 const AdminProtectedRoute = ({ children }) => {
   const { currentUser, userRole, loading } = useAuth();
-  const adminSession = sessionStorage.getItem('admin_session');
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>Loading...</div>;
 
-  if (!adminSession || !currentUser || userRole !== 'admin') {
+  if (!currentUser || userRole !== 'admin') {
     return <Navigate to="/admin-login" replace />;
   }
 
@@ -79,72 +82,74 @@ function App() {
       <SubscriptionProvider>
         <DataProvider>
           <Router>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
-              <Route path="/app" element={<RootRedirect />} />
+            <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem', fontSize: '1.2rem', color: '#666' }}>Loading Interface...</div>}>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/app" element={<RootRedirect />} />
 
-              {/* Admin Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <AdminProtectedRoute>
-                    <AdminLayout />
-                  </AdminProtectedRoute>
-                }
-              >
-                <Route index element={<AdminDashboard />} />
-                <Route path="clients" element={<AdminClients />} />
-                <Route path="billing" element={<AdminBilling />} />
-                <Route path="analytics" element={<AdminAnalytics />} />
-                <Route path="database" element={<AdminDatabase />} />
-                <Route path="settings" element={<AdminSettings />} />
-              </Route>
+                {/* Admin Routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminProtectedRoute>
+                      <AdminLayout />
+                    </AdminProtectedRoute>
+                  }
+                >
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="clients" element={<AdminClients />} />
+                  <Route path="billing" element={<AdminBilling />} />
+                  <Route path="analytics" element={<AdminAnalytics />} />
+                  <Route path="database" element={<AdminDatabase />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
 
-              {/* Public API - Polling Endpoint */}
-              <Route path="/vote/:token" element={<VotingPage />} />
+                {/* Public API - Polling Endpoint */}
+                <Route path="/vote/:token" element={<VotingPage />} />
 
-              {/* Manager Routes */}
-              <Route
-                path="/manager"
-                element={
-                  <ProtectedRoute allowedRoles={['manager']}>
-                    <ManagerLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<ManagerDashboardHome />} />
-                <Route path="elections" element={<ElectionSetup />} />
-                <Route path="stations" element={<PollingStations />} />
-                <Route path="agents" element={<AgentManagement />} />
-                <Route path="results" element={<ResultsOverview />} />
-                <Route path="sms" element={<SMSBroadcast />} />
+                {/* Manager Routes */}
+                <Route
+                  path="/manager"
+                  element={
+                    <ProtectedRoute allowedRoles={['manager']}>
+                      <ManagerLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<ManagerDashboardHome />} />
+                  <Route path="elections" element={<ElectionSetup />} />
+                  <Route path="stations" element={<PollingStations />} />
+                  <Route path="agents" element={<AgentManagement />} />
+                  <Route path="results" element={<ResultsOverview />} />
+                  <Route path="sms" element={<SMSBroadcast />} />
 
-                <Route path="social" element={<SocialMedia />} />
-                <Route path="polls" element={<PollManager />} />
-                <Route path="polls/:id" element={<PollResults />} />
-                <Route path="billing" element={<ManagerBilling />} />
-              </Route>
+                  <Route path="social" element={<SocialMedia />} />
+                  <Route path="polls" element={<PollManager />} />
+                  <Route path="polls/:id" element={<PollResults />} />
+                  <Route path="billing" element={<ManagerBilling />} />
+                </Route>
 
-              {/* Agent Routes */}
-              <Route
-                path="/agent"
-                element={
-                  <ProtectedRoute allowedRoles={['agent']}>
-                    <AgentLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<AgentDashboard />} />
-              </Route>
+                {/* Agent Routes */}
+                <Route
+                  path="/agent"
+                  element={
+                    <ProtectedRoute allowedRoles={['agent']}>
+                      <AgentLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<AgentDashboard />} />
+                </Route>
 
-              {/* Common Routes */}
-              <Route path="/reset-password" element={<ForcePasswordReset />} />
+                {/* Common Routes */}
+                <Route path="/reset-password" element={<ForcePasswordReset />} />
 
-              {/* Catch all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* Catch all */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </Router>
         </DataProvider>
       </SubscriptionProvider>

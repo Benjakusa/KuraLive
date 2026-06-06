@@ -1,12 +1,50 @@
 import json
+import os
+import traceback
 from flask import Blueprint, request, jsonify, g
-from database import query
+from database import query, transaction, query_in_transaction
 from utils.decorators import login_required, manager_required
-from utils.helpers import generate_uuid
+from utils.helpers import generate_uuid, sanitize_filename, hash_password
+from extensions import cache
+from config import Config
+from src.infrastructure.repositories.postgres_election_repo import PostgresElectionRepository
+from src.infrastructure.repositories.postgres_station_repo import PostgresStationRepository
+from src.infrastructure.repositories.postgres_agent_repo import PostgresAgentRepository
+from src.domain.services.station_service import StationService
+from src.domain.services.agent_service import AgentService
 
 api_bp = Blueprint("api", __name__)
+election_repo = PostgresElectionRepository()
+station_service = StationService(PostgresStationRepository())
+agent_service = AgentService(PostgresAgentRepository())
 
-# ── PROFILE ──────────────────────────────────────────
+
+def _get_manager_id():
+    """Helper to resolve the manager ID for the current user."""
+    return (
+        g.current_user["id"]
+        if g.current_user["role"] == "manager"
+        else g.current_user.get("manager_id")
+    )
+
+
+def _user_cache_key():
+    """Generates a cache key that strictly isolates data by user_id and query string."""
+    return f"{request.path}?{request.query_string.decode()}&uid={g.current_user['id']}"
+
+
+def _get_pagination_params():
+    try:
+        limit = int(request.args.get("limit", Config.DEFAULT_PAGE_SIZE))
+    except ValueError:
+        limit = Config.DEFAULT_PAGE_SIZE
+    try:
+        offset = int(request.args.get("offset", 0))
+    except ValueError:
+        offset = 0
+    limit = max(1, min(limit, Config.MAX_PAGE_SIZE))
+    offset = max(0, offset)
+    return limit, offset
 
 
 @api_bp.route("/profile", methods=["GET"])
@@ -20,339 +58,296 @@ def get_profile():
     return jsonify({"profile": profile})
 
 
-# ── ELECTIONS ────────────────────────────────────────
-
-
 @api_bp.route("/elections", methods=["GET"])
 @login_required
 def get_elections():
-    manager_id = (
-        request.args.get("manager_id")
-        or g.current_user.get("manager_id")
-        or g.current_user["id"]
-    )
-    if g.current_user["role"] == "agent":
-        manager_id = g.current_user["manager_id"]
-    elif g.current_user["role"] == "manager":
-        manager_id = g.current_user["id"]
-    elif g.current_user["role"] == "admin":
-        elections = query(
-            "SELECT * FROM elections ORDER BY created_at DESC", fetchall=True
-        )
-        return jsonify({"data": elections})
+    limit, offset = _get_pagination_params()
+    manager_id = _get_manager_id()
 
-    elections = query(
-        "SELECT * FROM elections WHERE manager_id = %s ORDER BY created_at DESC LIMIT 1",
-        (manager_id,),
-        fetchone=True,
-    )
-    return jsonify({"data": elections})
+    # Hexagonal Architecture pattern enforcement
+    rows, total = election_repo.get_by_manager(manager_id, limit, offset)
+
+    return jsonify({
+        "data": rows or [],
+        "pagination": {"total": total, "limit": limit, "offset": offset, "has_next": offset + limit < total}
+    })
 
 
 @api_bp.route("/elections", methods=["POST"])
 @login_required
 def save_election():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+    
     details = data.get("details")
-    manager_id = (
-        g.current_user["id"]
-        if g.current_user["role"] == "manager"
-        else g.current_user.get("manager_id")
-    )
+    manager_id = _get_manager_id()
 
-    existing = query(
-        "SELECT id FROM elections WHERE manager_id = %s LIMIT 1",
-        (manager_id,),
-        fetchone=True,
-    )
-
-    details_json = json.dumps(details) if not isinstance(details, str) else details
-    if existing:
-        query(
-            "UPDATE elections SET details = %s WHERE id = %s",
-            (details_json, existing["id"]),
-        )
-    else:
-        query(
-            "INSERT INTO elections (id, details, manager_id) VALUES (%s, %s, %s)",
-            (generate_uuid(), details_json, manager_id),
-        )
-
+    # Hexagonal Architecture pattern enforcement
+    election_repo.save(manager_id, details)
+    
     return jsonify({"message": "Election saved"})
-
-
-# ── STATIONS ─────────────────────────────────────────
 
 
 @api_bp.route("/stations", methods=["GET"])
 @login_required
 def get_stations():
-    manager_id = request.args.get("manager_id")
-    if g.current_user["role"] == "agent":
-        query_str = "SELECT * FROM stations WHERE id = %s ORDER BY name"
-        stations = (
-            query(query_str, (g.current_user.get("station_id"),), fetchall=True)
-            if g.current_user.get("station_id")
-            else []
-        )
-    elif g.current_user["role"] == "manager":
-        mid = manager_id or g.current_user["id"]
-        stations = query(
-            "SELECT * FROM stations WHERE manager_id = %s ORDER BY name",
-            (mid,),
-            fetchall=True,
-        )
-    else:
-        stations = query("SELECT * FROM stations ORDER BY name", fetchall=True)
-    return jsonify({"data": stations or []})
+    limit, offset = _get_pagination_params()
+    role = g.current_user["role"]
+    rows, total = station_service.list_stations(
+        role=role,
+        user_id=g.current_user["id"],
+        station_id=g.current_user.get("station_id"),
+        limit=limit,
+        offset=offset,
+        requested_manager_id=request.args.get("manager_id"),
+    )
+    return jsonify({
+        "data": rows,
+        "pagination": {"total": total, "limit": limit, "offset": offset, "has_next": offset + limit < total}
+    })
 
 
 @api_bp.route("/stations", methods=["POST"])
 @login_required
 def add_station():
     data = request.get_json()
-    manager_id = (
-        g.current_user["id"]
-        if g.current_user["role"] == "manager"
-        else g.current_user.get("manager_id")
-    )
-    station_id = generate_uuid()
-    query(
-        """INSERT INTO stations (id, name, county, constituency, ward, registered_voters, code, location, agent_id, manager_id)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-        (
-            station_id,
-            data["name"],
-            data.get("county"),
-            data.get("constituency"),
-            data.get("ward"),
-            data.get("voters") or data.get("registered_voters", 0),
-            data.get("code"),
-            data.get("location"),
-            data.get("agent_id"),
-            manager_id,
-        ),
-    )
-    station = query(
-        "SELECT * FROM stations WHERE id = %s", (station_id,), fetchone=True
-    )
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+    if not data.get("name"):
+        return jsonify({"error": "Station name is required"}), 400
+    station = station_service.create_station(data, manager_id=_get_manager_id())
     return jsonify({"data": station}), 201
 
 
 @api_bp.route("/stations/<station_id>", methods=["DELETE"])
 @login_required
 def delete_station(station_id):
-    query("DELETE FROM stations WHERE id = %s", (station_id,))
+    deleted = station_service.delete_station(station_id, manager_id=g.current_user["id"])
+    if not deleted:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
     return jsonify({"message": "Station deleted"})
-
-
-# ── AGENTS ───────────────────────────────────────────
 
 
 @api_bp.route("/agents", methods=["GET"])
 @login_required
 def get_agents():
-    manager_id = request.args.get("manager_id")
-    if g.current_user["role"] == "agent":
-        agents = query(
-            "SELECT * FROM users WHERE id = %s", (g.current_user["id"],), fetchall=True
-        )
-    elif g.current_user["role"] == "manager":
-        mid = manager_id or g.current_user["id"]
-        agents = query(
-            "SELECT * FROM users WHERE role = 'agent' AND manager_id = %s ORDER BY name",
-            (mid,),
-            fetchall=True,
-        )
-    else:
-        agents = query(
-            "SELECT * FROM users WHERE role = 'agent' ORDER BY name", fetchall=True
-        )
-    return jsonify({"data": agents or []})
+    limit, offset = _get_pagination_params()
+    rows, total = agent_service.list_agents(
+        role=g.current_user["role"],
+        user_id=g.current_user["id"],
+        limit=limit,
+        offset=offset,
+    )
+    return jsonify({
+        "data": rows,
+        "pagination": {"total": total, "limit": limit, "offset": offset, "has_next": offset + limit < total}
+    })
 
 
 @api_bp.route("/agents", methods=["POST"])
 @login_required
 def add_agent():
     data = request.get_json()
-    manager_id = (
-        g.current_user["id"]
-        if g.current_user["role"] == "manager"
-        else g.current_user.get("manager_id")
-    )
-    from utils.helpers import hash_password
-    import random
-    import string
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+    if not data.get("email"):
+        return jsonify({"error": "Agent email is required"}), 400
 
-    temp_password = data.get("password") or (
-        "".join(random.choices(string.ascii_letters + string.digits, k=10)) + "A1!"
-    )
-    agent_id = generate_uuid()
-    hashed = hash_password(temp_password)
+    agent = agent_service.create_agent(data, manager_id=_get_manager_id())
 
-    query(
-        """INSERT INTO users (id, email, password_hash, name, role, station_id, permissions, submission_status, status, manager_id)
-           VALUES (%s, %s, %s, %s, 'agent', %s, %s, %s, %s, %s)""",
-        (
-            agent_id,
-            data["email"],
-            hashed,
-            data.get("name", "Agent"),
-            data.get("stationId"),
-            data.get("permissions", "edit"),
-            data.get("submissionStatus", "Pending"),
-            data.get("status", "Active"),
-            manager_id,
-        ),
-    )
+    from services.email_service import send_agent_welcome
+    send_agent_welcome(data["email"], data.get("name", "Agent"), f"{Config.FRONTEND_URL}/login")
 
-    agent = query(
-        "SELECT id, email, name, role, station_id, permissions, submission_status, status, manager_id, created_at FROM users WHERE id = %s",
-        (agent_id,),
-        fetchone=True,
-    )
-
-    return jsonify({"data": agent, "temp_password": temp_password}), 201
+    return jsonify({"data": agent}), 201
 
 
 @api_bp.route("/agents/<agent_id>", methods=["PUT"])
 @login_required
 def update_agent(agent_id):
     data = request.get_json()
-    fields = []
-    params = []
-    for field in [
-        "name",
-        "email",
-        "status",
-        "station_id",
-        "permissions",
-        "submission_status",
-    ]:
-        if field in data:
-            fields.append(f"{field} = %s")
-            params.append(data[field])
-    if fields:
-        params.append(agent_id)
-        query(f"UPDATE users SET {', '.join(fields)} WHERE id = %s", params)
-    agent = query(
-        "SELECT id, email, name, role, station_id, permissions, submission_status, status, manager_id, created_at FROM users WHERE id = %s",
-        (agent_id,),
-        fetchone=True,
-    )
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+    agent = agent_service.update_agent(agent_id, manager_id=g.current_user["id"], data=data)
+    if not agent:
+        return jsonify({"error": "Agent not found, unauthorized, or no valid fields supplied"}), 404
     return jsonify({"data": agent})
 
 
 @api_bp.route("/agents/<agent_id>", methods=["DELETE"])
 @login_required
 def delete_agent(agent_id):
-    query("DELETE FROM users WHERE id = %s", (agent_id,))
+    deleted = agent_service.delete_agent(agent_id, manager_id=g.current_user["id"])
+    if not deleted:
+        return jsonify({"error": "Agent not found or unauthorized"}), 404
     return jsonify({"message": "Agent deleted"})
-
-
-# ── RESULTS ──────────────────────────────────────────
 
 
 @api_bp.route("/results", methods=["GET"])
 @login_required
 def get_results():
-    manager_id = request.args.get("manager_id")
-    if g.current_user["role"] == "manager":
-        mid = manager_id or g.current_user["id"]
-        results = query(
-            "SELECT * FROM results WHERE manager_id = %s ORDER BY timestamp DESC",
-            (mid,),
+    limit, offset = _get_pagination_params()
+    role = g.current_user["role"]
+
+    if role == "manager":
+        mid = request.args.get("manager_id") or g.current_user["id"]
+        rows = query(
+            "SELECT * FROM results WHERE manager_id = %s ORDER BY timestamp DESC LIMIT %s OFFSET %s",
+            (mid, limit, offset),
             fetchall=True,
         )
-    elif g.current_user["role"] == "agent":
-        results = query(
-            "SELECT * FROM results WHERE agent_id = %s ORDER BY timestamp DESC",
-            (g.current_user["id"],),
+        total_row = query("SELECT COUNT(*) as count FROM results WHERE manager_id = %s", (mid,), fetchone=True)
+    elif role == "agent":
+        rows = query(
+            "SELECT * FROM results WHERE agent_id = %s ORDER BY timestamp DESC LIMIT %s OFFSET %s",
+            (g.current_user["id"], limit, offset),
             fetchall=True,
         )
+        total_row = query("SELECT COUNT(*) as count FROM results WHERE agent_id = %s", (g.current_user["id"],), fetchone=True)
     else:
-        results = query("SELECT * FROM results ORDER BY timestamp DESC", fetchall=True)
-    return jsonify({"data": results or []})
+        return jsonify({"data": [], "pagination": {"total": 0, "limit": limit, "offset": offset, "has_next": False}})
+
+    total = total_row["count"] if total_row else 0
+
+    return jsonify({
+        "data": rows or [],
+        "pagination": {"total": total, "limit": limit, "offset": offset, "has_next": offset + limit < total}
+    })
 
 
 @api_bp.route("/results", methods=["POST"])
 @login_required
 def submit_result():
     data = request.get_json()
-    manager_id = (
-        g.current_user.get("manager_id")
-        if g.current_user["role"] == "agent"
-        else g.current_user["id"]
-    )
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+    if not data.get("station_id"):
+        return jsonify({"error": "Station ID is required"}), 400
 
-    agent = query(
-        "SELECT submission_status FROM users WHERE id = %s",
-        (g.current_user["id"],),
-        fetchone=True,
-    )
-    if agent and agent["submission_status"] in ("Submitted", "Locked"):
-        return jsonify(
-            {"error": "Results already submitted. Contact manager to unlock."}
-        ), 403
-
+    manager_id = _get_manager_id()
     result_id = generate_uuid()
-    try:
-        query(
-            """INSERT INTO results (id, station_id, agent_id, manager_id, station_name, agent_name, results_data, stats, proof_image)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            (
-                result_id,
-                data["station_id"],
-                g.current_user["id"],
-                manager_id,
-                data.get("station_name"),
-                data.get("agent_name"),
-                json.dumps(data.get("results_data", {})),
-                json.dumps(data.get("stats", {})),
-                data.get("proof_image"),
-            ),
-        )
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
 
-    query(
-        "UPDATE users SET submission_status = 'Submitted' WHERE id = %s",
-        (g.current_user["id"],),
-    )
+    # FIX: Lock exception handling. We catch errors and set a response,
+    # but strictly return AFTER leaving the `with` block so `transaction` closes cleanly.
+    error_response = None
+    
+    with transaction() as conn:
+        agent = query_in_transaction(
+            conn,
+            "SELECT submission_status FROM users WHERE id = %s FOR UPDATE",
+            (g.current_user["id"],),
+            fetchone=True,
+        )
+        
+        if agent and agent["submission_status"] in ("Submitted", "Locked"):
+            error_response = ({"error": "Results already submitted. Contact manager to unlock."}, 403)
+        else:
+            try:
+                query_in_transaction(
+                    conn,
+                    """INSERT INTO results (id, station_id, agent_id, manager_id, station_name, agent_name, results_data, stats, proof_image)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (
+                        result_id,
+                        data["station_id"],
+                        g.current_user["id"],
+                        manager_id,
+                        data.get("station_name"),
+                        data.get("agent_name"),
+                        json.dumps(data.get("results_data", {})),
+                        json.dumps(data.get("stats", {})),
+                        data.get("proof_image"),
+                    ),
+                )
+                query_in_transaction(
+                    conn,
+                    "UPDATE users SET submission_status = 'Submitted' WHERE id = %s",
+                    (g.current_user["id"],),
+                )
+            except Exception as e:
+                # E.g. foreign key violation, valid data checks
+                error_response = ({"error": "Failed to submit result"}, 400)
+
+    # Wait until OUTSIDE the context manager to return, ensuring connection and lock are released
+    if error_response:
+        return jsonify(error_response[0]), error_response[1]
 
     result = query("SELECT * FROM results WHERE id = %s", (result_id,), fetchone=True)
     return jsonify({"data": result}), 201
 
 
-# ── UPLOAD ───────────────────────────────────────────
-
-
 @api_bp.route("/upload", methods=["POST"])
 @login_required
 def upload_file():
-    import os
-    import traceback
+    ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf"}
+    import mimetypes
     from config import Config
+    from utils.storage import upload_to_s3
 
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
     file = request.files["file"]
-    if file.filename == "":
+    if not file.filename:
         return jsonify({"error": "No file selected"}), 400
 
+    _, ext = os.path.splitext(file.filename.lower())
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify(
+            {"error": f"File type {ext} not allowed. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"}
+        ), 400
+        
+    # SECURITY: Verify the MIME type matches the extension to prevent simple rename bypasses
+    mime_type, _ = mimetypes.guess_type(file.filename)
+    if not mime_type or not file.content_type.startswith(mime_type.split('/')[0]):
+        return jsonify({"error": "Invalid file content type"}), 400
+
+    # SECURITY: Verify Magic Bytes
+    MAGIC_SIGNATURES = {
+        b'\xFF\xD8\xFF': 'image/jpeg',
+        b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A': 'image/png',
+        b'GIF87a': 'image/gif',
+        b'GIF89a': 'image/gif',
+        b'RIFF': 'image/webp',
+        b'%PDF-': 'application/pdf',
+    }
+    
+    header = file.read(20)
+    file.seek(0)
+    is_valid_magic = False
+    for magic, mtype in MAGIC_SIGNATURES.items():
+        if header.startswith(magic):
+            # Special check for webp which has "WEBP" at byte 8
+            if magic == b'RIFF' and not header[8:12] == b'WEBP':
+                continue
+            # If magic matches, permit it based on the broad type
+            if file.content_type in mtype or ext.replace('.jpg', '.jpeg')[1:] in mtype:
+                is_valid_magic = True
+                break
+            # Relaxed fallback if it's broadly recognized
+            is_valid_magic = True
+
+    if not is_valid_magic:
+        return jsonify({"error": "File signature mismatch (invalid magic bytes)"}), 400
+
     try:
-        upload_dir = os.path.join(Config.UPLOAD_FOLDER, str(g.current_user["id"]))
+        user_folder = str(g.current_user["id"])
+        safe_name = sanitize_filename(file.filename)
+        
+        # Try S3 first
+        s3_key = upload_to_s3(file, safe_name, folder_path=user_folder)
+        if s3_key:
+            return jsonify({"url": f"/uploads/{s3_key}"})
+            
+        # Fallback to local (development)
+        upload_dir = os.path.join(Config.UPLOAD_FOLDER, user_folder)
         os.makedirs(upload_dir, exist_ok=True)
-        filename = f"{int(__import__('time').time())}_{file.filename}"
-        filepath = os.path.join(upload_dir, filename)
+        filepath = os.path.join(upload_dir, safe_name)
+        file.seek(0) # reset pointer if S3 read it
         file.save(filepath)
-        return jsonify({"url": f"/uploads/{g.current_user['id']}/{filename}"})
+        return jsonify({"url": f"/uploads/{user_folder}/{safe_name}"})
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-
-# ── SUBSCRIPTIONS ────────────────────────────────────
+        return jsonify({"error": "File upload failed"}), 500
 
 
 @api_bp.route("/subscriptions", methods=["GET"])
@@ -360,27 +355,16 @@ def upload_file():
 def get_subscription():
     sub = query(
         "SELECT * FROM subscriptions WHERE manager_id = %s",
-        (
-            g.current_user["id"]
-            if g.current_user["role"] == "manager"
-            else g.current_user.get("manager_id"),
-        ),
+        (_get_manager_id(),),
         fetchone=True,
     )
     if not sub:
-        sub_id = generate_uuid()
-        query(
-            """INSERT INTO subscriptions (id, manager_id, plan, status, trial_started_at, trial_expires_at)
-               VALUES (%s, %s, 'free', 'trial', NOW(), NOW() + INTERVAL '14 days')""",
-            (
-                sub_id,
-                g.current_user["id"]
-                if g.current_user["role"] == "manager"
-                else g.current_user.get("manager_id"),
-            ),
-        )
         sub = query(
-            "SELECT * FROM subscriptions WHERE id = %s", (sub_id,), fetchone=True
+            """INSERT INTO subscriptions (id, manager_id, plan, status, trial_started_at, trial_expires_at)
+               VALUES (%s, %s, 'free', 'trial', NOW(), NOW() + INTERVAL '14 days')
+               RETURNING *""",
+            (generate_uuid(), _get_manager_id(),),
+            fetchone=True
         )
     return jsonify({"data": sub})
 
@@ -389,25 +373,21 @@ def get_subscription():
 @login_required
 def upgrade_subscription():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+
     plan_id = data.get("plan")
     phone_number = data.get("phoneNumber")
-    manager_id = (
-        g.current_user["id"]
-        if g.current_user["role"] == "manager"
-        else g.current_user.get("manager_id")
-    )
+    manager_id = _get_manager_id()
 
     if plan_id == "free":
-        query(
+        sub = query(
             """UPDATE subscriptions SET plan = 'free', status = 'trial',
                trial_started_at = NOW(), trial_expires_at = NOW() + INTERVAL '14 days'
-               WHERE manager_id = %s""",
+               WHERE manager_id = %s
+               RETURNING *""",
             (manager_id,),
-        )
-        sub = query(
-            "SELECT * FROM subscriptions WHERE manager_id = %s",
-            (manager_id,),
-            fetchone=True,
+            fetchone=True
         )
         return jsonify({"data": sub})
 
@@ -420,12 +400,7 @@ def upgrade_subscription():
 @api_bp.route("/subscriptions/activate", methods=["POST"])
 @login_required
 def activate_subscription():
-    data = request.get_json()
-    manager_id = (
-        g.current_user["id"]
-        if g.current_user["role"] == "manager"
-        else g.current_user.get("manager_id")
-    )
+    manager_id = _get_manager_id()
 
     sub = query(
         "SELECT * FROM subscriptions WHERE manager_id = %s",
@@ -435,16 +410,14 @@ def activate_subscription():
     if not sub or not sub.get("payment_confirmed"):
         return jsonify({"error": "Payment not confirmed"}), 400
 
-    query(
+    sub = query(
         """UPDATE subscriptions SET plan = pending_plan, status = 'active', activated_at = NOW(),
            expires_at = NOW() + INTERVAL '365 days', pending_payment = false, pending_plan = NULL,
            checkout_request_id = NULL, payment_phone = NULL, payment_confirmed = false
-           WHERE id = %s""",
+           WHERE id = %s
+           RETURNING *""",
         (sub["id"],),
-    )
-
-    sub = query(
-        "SELECT * FROM subscriptions WHERE id = %s", (sub["id"],), fetchone=True
+        fetchone=True
     )
     return jsonify({"data": sub})
 
@@ -454,22 +427,16 @@ def activate_subscription():
 def get_payment_history():
     history = query(
         "SELECT * FROM payment_history WHERE manager_id = %s ORDER BY created_at DESC",
-        (
-            g.current_user["id"]
-            if g.current_user["role"] == "manager"
-            else g.current_user.get("manager_id"),
-        ),
+        (_get_manager_id(),),
         fetchall=True,
     )
     return jsonify({"data": history or []})
 
 
-# ── MANAGERS (for admin) ─────────────────────────────
-
-
 @api_bp.route("/managers", methods=["GET"])
-@login_required
+@manager_required
 def get_managers():
+    # Only admins and managers allowed, guarded by @manager_required
     managers = query(
         "SELECT id, email, name, role, status, created_at FROM users WHERE role = 'manager' ORDER BY name",
         fetchall=True,

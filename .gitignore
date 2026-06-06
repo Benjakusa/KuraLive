@@ -34,3 +34,13 @@ Thumbs.db
 
 # Supabase (deleted)
 supabase/
+
+# Docker
+*.pid
+*.sock
+
+# Load testing
+load_test/k6_summary*.json
+load_test/*.log
+load_test/monitor.log
+load_test/monitor.pid

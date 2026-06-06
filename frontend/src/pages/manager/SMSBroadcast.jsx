@@ -7,6 +7,7 @@ import {
 import * as XLSX from 'xlsx';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const req = (url, opts = {}) => fetch(url, { ...opts, credentials: 'include' });
 
 const STATUS_COLORS = {
     draft: { bg: '#f3f4f6', color: '#374151' },
@@ -41,7 +42,7 @@ function ContactsTab({ onSelectGroup, token }) {
         if (filter.constituency) params.set('constituency', filter.constituency);
         if (filter.ward) params.set('ward', filter.ward);
         if (filter.polling_station) params.set('polling_station', filter.polling_station);
-        const r = await fetch(`${API}/contacts/groups?${params}`, { headers });
+        const r = await req(`${API}/contacts/groups?${params}`, { headers });
         const d = await r.json();
         setGroups(d.data || []);
         setGeoOptions(d.geo_options || { counties: [], constituencies: [], wards: [], stations: [] });
@@ -61,7 +62,7 @@ function ContactsTab({ onSelectGroup, token }) {
     async function handleDelete(label) {
         if (!window.confirm(`Delete all contacts in "${label}"?`)) return;
         setDeleting(label);
-        await fetch(`${API}/contacts/group?group_label=${encodeURIComponent(label)}`, {
+        await req(`${API}/contacts/group?group_label=${encodeURIComponent(label)}`, {
             method: 'DELETE', headers,
         });
         setDeleting(null);
@@ -76,7 +77,7 @@ function ContactsTab({ onSelectGroup, token }) {
         if (filter.constituency) params.set('constituency', filter.constituency);
         if (filter.ward) params.set('ward', filter.ward);
         if (filter.polling_station) params.set('polling_station', filter.polling_station);
-        const r = await fetch(`${API}/contacts/group-phones?${params}`, { headers });
+        const r = await req(`${API}/contacts/group-phones?${params}`, { headers });
         const d = await r.json();
         onSelectGroup(d.data || [], label);
     }
@@ -199,7 +200,7 @@ function UploadTab({ onLoadNumbers, token }) {
         setShowSaveForm(false);
         const form = new FormData();
         form.append('file', file);
-        const r = await fetch(`${API}/sms/upload-numbers`, {
+        const r = await req(`${API}/sms/upload-numbers`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: form,
@@ -231,7 +232,7 @@ function UploadTab({ onLoadNumbers, token }) {
         if (geoTag.ward) form.append('ward', geoTag.ward);
         if (geoTag.polling_station) form.append('polling_station', geoTag.polling_station);
 
-        const r = await fetch(`${API}/contacts/import`, {
+        const r = await req(`${API}/contacts/import`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
             body: form,
@@ -336,7 +337,7 @@ function DatabaseTab({ onSelectRecipients, token }) {
     const GEO_LEVELS = ['National', 'County', 'Constituency', 'Ward', 'Polling Station'];
 
     useEffect(() => {
-        fetch(`${API}/stations`, { headers }).then(r => r.json()).then(d => setStations(d.data || []));
+        req(`${API}/stations`, { headers }).then(r => r.json()).then(d => setStations(d.data || []));
     }, []);
 
     useEffect(() => {
@@ -401,8 +402,7 @@ function DatabaseTab({ onSelectRecipients, token }) {
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 
 function SMSBroadcast() {
-    const token = localStorage.getItem('uchaguzi360_token');
-    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json' };
 
     const [activeMode, setActiveMode] = useState('contacts');
     const [recipientsPayload, setRecipientsPayload] = useState({ type: 'none', data: [], label: '' });
@@ -433,14 +433,14 @@ function SMSBroadcast() {
     useEffect(() => { fetchCampaigns(); fetchTemplates(); }, []);
 
     async function fetchCampaigns(page = 1, search = '') {
-        const r = await fetch(`${API}/sms/campaigns?page=${page}&per_page=10&search=${encodeURIComponent(search)}`, { headers });
+        const r = await req(`${API}/sms/campaigns?page=${page}&per_page=10&search=${encodeURIComponent(search)}`, { headers });
         const d = await r.json();
         setCampaigns(d.data || []);
         setCampaignTotal(d.total || 0);
     }
 
     async function fetchTemplates() {
-        const r = await fetch(`${API}/sms/templates`, { headers });
+        const r = await req(`${API}/sms/templates`, { headers });
         const d = await r.json();
         setTemplates(d.data || []);
     }
@@ -449,7 +449,7 @@ function SMSBroadcast() {
 
     async function saveTemplate() {
         if (!templateName.trim() || !message.trim()) return;
-        await fetch(`${API}/sms/templates`, {
+        await req(`${API}/sms/templates`, {
             method: 'POST', headers,
             body: JSON.stringify({ name: templateName, content: message }),
         });
@@ -486,7 +486,7 @@ function SMSBroadcast() {
         }
 
         setSending(true);
-        const r = await fetch(`${API}/sms/broadcast`, { method: 'POST', headers, body: JSON.stringify(payload) });
+        const r = await req(`${API}/sms/broadcast`, { method: 'POST', headers, body: JSON.stringify(payload) });
         const d = await r.json();
         setSending(false);
         if (r.ok) {
@@ -749,7 +749,7 @@ function SMSBroadcast() {
                                     style={{ color: 'var(--danger)', borderColor: 'var(--danger)', width: '100%' }}
                                     onClick={async () => {
                                         if (!window.confirm("Are you sure you want to delete this campaign?")) return;
-                                        await fetch(`${API}/sms/campaigns/${selectedCampaign.id}`, { method: 'DELETE', headers });
+                                        await req(`${API}/sms/campaigns/${selectedCampaign.id}`, { method: 'DELETE', headers });
                                         setSelectedCampaign(null);
                                         fetchCampaigns(campaignPage, campaignSearch);
                                     }}

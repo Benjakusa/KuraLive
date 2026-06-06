@@ -1,15 +1,15 @@
 import json
+import logging
 from flask import Blueprint, request, jsonify, g
 from database import query
 from utils.decorators import manager_required
 from utils.helpers import generate_uuid
 
+logger = logging.getLogger(__name__)
+
 social_bp = Blueprint("social", __name__)
 
 PLATFORMS = ("facebook", "twitter", "instagram", "tiktok")
-CHAR_LIMITS = {"facebook": 63206, "twitter": 280, "instagram": 2200, "tiktok": 2200}
-
-# ── ACCOUNTS ──────────────────────────────────────────
 
 
 @social_bp.route("/accounts", methods=["GET"])
@@ -21,12 +21,13 @@ def list_accounts():
         (mid,),
         fetchall=True,
     )
-    # Fill in any missing platforms as disconnected stubs
     existing = {r["platform"] for r in (rows or [])}
     result = list(rows or [])
     for p in PLATFORMS:
         if p not in existing:
-            result.append({"platform": p, "connected": False, "handle": None, "follower_count": 0})
+            result.append(
+                {"platform": p, "connected": False, "handle": None, "follower_count": 0}
+            )
     return jsonify({"data": result})
 
 
@@ -34,6 +35,8 @@ def list_accounts():
 @manager_required
 def connect_account():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
     mid = g.current_user["id"]
     platform = data.get("platform")
     if platform not in PLATFORMS:
@@ -49,8 +52,13 @@ def connect_account():
             """UPDATE social_accounts SET handle=%s, access_token=%s, refresh_token=%s,
                token_expires_at=%s, connected=true, last_sync=NOW()
                WHERE id=%s""",
-            (data.get("handle"), data.get("access_token"), data.get("refresh_token"),
-             data.get("expires_at"), existing["id"]),
+            (
+                data.get("handle"),
+                data.get("access_token"),
+                data.get("refresh_token"),
+                data.get("expires_at"),
+                existing["id"],
+            ),
         )
         aid = existing["id"]
     else:
@@ -59,9 +67,17 @@ def connect_account():
             """INSERT INTO social_accounts
                (id, manager_id, platform, handle, page_id, follower_count, access_token, refresh_token, token_expires_at, connected, last_sync)
                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,true,NOW())""",
-            (aid, mid, platform, data.get("handle"), data.get("page_id"),
-             data.get("follower_count", 0), data.get("access_token"),
-             data.get("refresh_token"), data.get("expires_at")),
+            (
+                aid,
+                mid,
+                platform,
+                data.get("handle"),
+                data.get("page_id"),
+                data.get("follower_count", 0),
+                data.get("access_token"),
+                data.get("refresh_token"),
+                data.get("expires_at"),
+            ),
         )
 
     row = query("SELECT * FROM social_accounts WHERE id = %s", (aid,), fetchone=True)
@@ -76,9 +92,6 @@ def disconnect_account(aid):
         (aid, g.current_user["id"]),
     )
     return jsonify({"message": "Disconnected"})
-
-
-# ── SCHEDULED POSTS ───────────────────────────────────
 
 
 @social_bp.route("/posts", methods=["GET"])
@@ -100,6 +113,8 @@ def list_posts():
 @manager_required
 def create_post():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
     mid = g.current_user["id"]
     if not data.get("content_text"):
         return jsonify({"error": "content_text is required"}), 400
@@ -110,7 +125,8 @@ def create_post():
            (id, manager_id, platforms, content_text, media_urls, scheduled_at, status)
            VALUES (%s,%s,%s,%s,%s,%s,%s)""",
         (
-            pid, mid,
+            pid,
+            mid,
             json.dumps(data.get("platforms", [])),
             data["content_text"],
             json.dumps(data.get("media_urls", [])),
@@ -126,6 +142,8 @@ def create_post():
 @manager_required
 def update_post(pid):
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
     mid = g.current_user["id"]
     fields, params = [], []
     for col in ["content_text", "scheduled_at", "status"]:
@@ -140,7 +158,10 @@ def update_post(pid):
         params.append(json.dumps(data["media_urls"]))
     if fields:
         params += [pid, mid]
-        query(f"UPDATE scheduled_posts SET {', '.join(fields)} WHERE id=%s AND manager_id=%s", params)
+        query(
+            f"UPDATE scheduled_posts SET {', '.join(fields)} WHERE id=%s AND manager_id=%s",
+            params,
+        )
     row = query("SELECT * FROM scheduled_posts WHERE id = %s", (pid,), fetchone=True)
     return jsonify({"data": row})
 
@@ -148,11 +169,11 @@ def update_post(pid):
 @social_bp.route("/posts/<pid>", methods=["DELETE"])
 @manager_required
 def delete_post(pid):
-    query("DELETE FROM scheduled_posts WHERE id=%s AND manager_id=%s", (pid, g.current_user["id"]))
+    query(
+        "DELETE FROM scheduled_posts WHERE id=%s AND manager_id=%s",
+        (pid, g.current_user["id"]),
+    )
     return jsonify({"message": "Post deleted"})
-
-
-# ── METRICS ───────────────────────────────────────────
 
 
 @social_bp.route("/metrics", methods=["GET"])
@@ -178,6 +199,8 @@ def get_metrics():
 @manager_required
 def upsert_metric():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
     mid = g.current_user["id"]
     query(
         """INSERT INTO social_metrics
@@ -187,14 +210,19 @@ def upsert_metric():
              followers=EXCLUDED.followers, reach=EXCLUDED.reach,
              impressions=EXCLUDED.impressions, engagements=EXCLUDED.engagements,
              sentiment_score=EXCLUDED.sentiment_score""",
-        (generate_uuid(), mid, data["platform"], data["date"],
-         data.get("followers", 0), data.get("reach", 0), data.get("impressions", 0),
-         data.get("engagements", 0), data.get("sentiment_score", 0)),
+        (
+            generate_uuid(),
+            mid,
+            data["platform"],
+            data["date"],
+            data.get("followers", 0),
+            data.get("reach", 0),
+            data.get("impressions", 0),
+            data.get("engagements", 0),
+            data.get("sentiment_score", 0),
+        ),
     )
     return jsonify({"message": "ok"})
-
-
-# ── MENTIONS & KEYWORDS ───────────────────────────────
 
 
 @social_bp.route("/mentions", methods=["GET"])
@@ -224,6 +252,8 @@ def list_keywords():
 @manager_required
 def add_keyword():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
     kw = (data.get("keyword") or "").strip().lower()
     if not kw:
         return jsonify({"error": "keyword required"}), 400
@@ -242,11 +272,11 @@ def add_keyword():
 @social_bp.route("/keywords/<kid>", methods=["DELETE"])
 @manager_required
 def delete_keyword(kid):
-    query("DELETE FROM social_keywords WHERE id=%s AND manager_id=%s", (kid, g.current_user["id"]))
+    query(
+        "DELETE FROM social_keywords WHERE id=%s AND manager_id=%s",
+        (kid, g.current_user["id"]),
+    )
     return jsonify({"message": "Keyword deleted"})
-
-
-# ── COMPETITORS ───────────────────────────────────────
 
 
 @social_bp.route("/competitors", methods=["GET"])
@@ -264,14 +294,22 @@ def list_competitors():
 @manager_required
 def add_competitor():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
     cid = generate_uuid()
     query(
         """INSERT INTO social_competitors
            (id, manager_id, platform, handle, follower_count, engagement_rate, posts_last_30d)
            VALUES (%s,%s,%s,%s,%s,%s,%s)""",
-        (cid, g.current_user["id"], data.get("platform", "twitter"),
-         data["handle"], data.get("follower_count", 0),
-         data.get("engagement_rate", 0), data.get("posts_last_30d", 0)),
+        (
+            cid,
+            g.current_user["id"],
+            data.get("platform", "twitter"),
+            data["handle"],
+            data.get("follower_count", 0),
+            data.get("engagement_rate", 0),
+            data.get("posts_last_30d", 0),
+        ),
     )
     row = query("SELECT * FROM social_competitors WHERE id=%s", (cid,), fetchone=True)
     return jsonify({"data": row}), 201
@@ -280,5 +318,8 @@ def add_competitor():
 @social_bp.route("/competitors/<cid>", methods=["DELETE"])
 @manager_required
 def delete_competitor(cid):
-    query("DELETE FROM social_competitors WHERE id=%s AND manager_id=%s", (cid, g.current_user["id"]))
+    query(
+        "DELETE FROM social_competitors WHERE id=%s AND manager_id=%s",
+        (cid, g.current_user["id"]),
+    )
     return jsonify({"message": "Competitor removed"})

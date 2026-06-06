@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaShieldAlt, FaKey, FaLock, FaEnvelope, FaEye, FaEyeSlash, FaSun, FaMoon, FaHome } from 'react-icons/fa';
 import { useTheme } from '../contexts/ThemeContext';
-import api, { setToken } from '../lib/api';
+import api from '../lib/api';
 
 const AdminLogin = () => {
     const navigate = useNavigate();
@@ -26,10 +26,8 @@ const AdminLogin = () => {
         }
 
         try {
-            const data = await api.login(email, password);
-            setToken(data.token);
+            const data = await api.login(email, password, secretKey);
 
-            // Check if user is admin with correct secret
             const meData = await api.getMe();
             const profile = meData.user;
 
@@ -37,13 +35,9 @@ const AdminLogin = () => {
                 throw new Error('Access denied. Admin credentials required.');
             }
 
-            // We need to validate the admin_secret. Let's check via a special admin endpoint
-            // For now, we'll just check the role since the secret check happens on backend
-            sessionStorage.setItem('admin_session', 'true');
             navigate('/admin');
         } catch (err) {
             setError(err.message || 'Authentication failed');
-            setToken(null);
         } finally {
             setIsSubmitting(false);
         }

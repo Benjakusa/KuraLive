@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaUsers, FaUserPlus, FaUserEdit, FaTrash, FaSearch, FaEnvelope, FaKey, FaCrown, FaBell, FaVolumeMute, FaVolumeUp, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import api, { setToken } from '../../lib/api';
+import api from '../../lib/api';
 
 const AdminClients = () => {
     const [clients, setClients] = useState([]);

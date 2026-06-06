@@ -24,7 +24,6 @@ const AdminLayout = () => {
     useEffect(() => { setSidebarOpen(false); }, [location]);
 
     const handleLogout = () => {
-        sessionStorage.removeItem('admin_session');
         logout();
         navigate('/admin-login');
     };

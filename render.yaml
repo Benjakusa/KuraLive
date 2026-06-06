@@ -4,7 +4,7 @@ services:
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --workers 4 --bind 0.0.0.0:$PORT
+    startCommand: gunicorn app:app --workers 4 --worker-class gevent --bind 0.0.0.0:$PORT --timeout 60 --access-logfile -
     envVars:
       - key: SECRET_KEY
         sync: false
@@ -17,9 +17,9 @@ services:
       - key: DARAJA_PASSKEY
         sync: false
       - key: DARAJA_SHORT_CODE
-        value: "174379"
+        sync: false
       - key: DARAJA_ENV
-        value: sandbox
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: TWILIO_ACCOUNT_SID
@@ -36,5 +36,23 @@ services:
         value: Uchaguzi360
       - key: TALKINGAFRICA_SHORTCODE
         sync: false
-      - key: UPLOAD_FOLDER
-        value: uploads
+      - key: FRONTEND_URL
+        value: https://uchaguzi360.vercel.app
+      - key: REDIS_URL
+        sync: false
+      - key: FLASK_DEBUG
+        value: "false"
+
+  - type: worker
+    name: uchaguzi360-worker
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python worker.py
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: FRONTEND_URL
+        value: https://uchaguzi360.vercel.app

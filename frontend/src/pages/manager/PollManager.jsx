@@ -4,10 +4,10 @@ import { FaPollH, FaPlus, FaCopy, FaShareAlt, FaTrash, FaPlay, FaStop, FaTimes, 
 import QRCode from 'react-qr-code';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const req = (url, opts = {}) => fetch(url, { ...opts, credentials: 'include' });
 
 function PollManager() {
-    const token = localStorage.getItem('uchaguzi360_token');
-    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    const headers = { 'Content-Type': 'application/json' };
 
     const [polls, setPolls] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -19,7 +19,7 @@ function PollManager() {
     useEffect(() => { fetchPolls(); }, []);
 
     async function fetchPolls() {
-        const r = await fetch(`${API}/polls`, { headers });
+        const r = await req(`${API}/polls`, { headers });
         const d = await r.json();
         setPolls(d.data || []);
     }
@@ -61,7 +61,7 @@ function PollManager() {
             if (q.options.length < 2) { setPollError('Each question needs at least 2 options'); return; }
         }
         setSubmitting(true);
-        const r = await fetch(`${API}/polls`, { method: 'POST', headers, body: JSON.stringify(form) });
+        const r = await req(`${API}/polls`, { method: 'POST', headers, body: JSON.stringify(form) });
         setSubmitting(false);
         if (r.ok) {
             setShowModal(false);
@@ -73,13 +73,13 @@ function PollManager() {
     }
 
     async function updateStatus(id, newStatus) {
-        await fetch(`${API}/polls/${id}`, { method: 'PUT', headers, body: JSON.stringify({ status: newStatus }) });
+        await req(`${API}/polls/${id}`, { method: 'PUT', headers, body: JSON.stringify({ status: newStatus }) });
         fetchPolls();
     }
 
     async function deletePoll(id) {
         if (!confirm('Are you sure you want to permanently delete this poll? All related data and votes will be lost.')) return;
-        const r = await fetch(`${API}/polls/${id}`, { method: 'DELETE', headers });
+        const r = await req(`${API}/polls/${id}`, { method: 'DELETE', headers });
         if (r.ok) fetchPolls();
         else alert('Failed to delete poll');
     }

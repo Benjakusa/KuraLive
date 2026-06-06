@@ -22,11 +22,7 @@ const Login = () => {
 
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [resetEmail, setResetEmail] = useState('');
-    const [resetToken, setResetToken] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [resetStep, setResetStep] = useState('email');
-    const [resetSuccess, setResetSuccess] = useState('');
+    const [resetSent, setResetSent] = useState(false);
 
     const getRedirectPath = (userRole, userObj) => {
         if (userObj?.force_password_reset) return '/reset-password';
@@ -61,42 +57,10 @@ const Login = () => {
         setIsSubmitting(true);
         setError('');
         try {
-            const data = await api.forgotPassword(resetEmail);
-            setResetToken(data.reset_token);
-            setResetStep('password');
+            await api.forgotPassword(resetEmail);
+            setResetSent(true);
         } catch (err) {
             setError(err.message || 'Failed to send reset code');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleResetWithToken = async (e) => {
-        e.preventDefault();
-        if (newPassword.length < 8) {
-            setError('Password must be at least 8 characters');
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setError('Passwords do not match');
-            return;
-        }
-        setIsSubmitting(true);
-        setError('');
-        try {
-            await api.resetWithToken(resetToken, newPassword);
-            setResetSuccess('Password reset successfully! You can now log in.');
-            setTimeout(() => {
-                setShowForgotPassword(false);
-                setResetStep('email');
-                setResetEmail('');
-                setResetToken('');
-                setNewPassword('');
-                setConfirmPassword('');
-                setResetSuccess('');
-            }, 2000);
-        } catch (err) {
-            setError(err.message || 'Failed to reset password');
         } finally {
             setIsSubmitting(false);
         }
@@ -261,10 +225,10 @@ const Login = () => {
 
                 {showForgotPassword && (
                     <>
-                        <div style={{ marginBottom: 'var(--space-6)' }}>
+                        <div style={{ marginBottom: 'var(--space-4)' }}>
                             <button
                                 type="button"
-                                onClick={() => { setShowForgotPassword(false); setResetStep('email'); setError(''); setResetSuccess(''); }}
+                                onClick={() => { setShowForgotPassword(false); setResetSent(false); setError(''); }}
                                 style={{
                                     background: 'none', border: 'none',
                                     color: 'var(--color-text-muted)', cursor: 'pointer',
@@ -276,91 +240,54 @@ const Login = () => {
                             </button>
                         </div>
 
-                        {resetSuccess ? (
+                        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Reset Password</h2>
+                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: 'var(--space-6)' }}>
+                            {resetSent ? 'Check your email for the reset link.' : 'Enter your email to receive a reset link.'}
+                        </p>
+
+                        {error && (
+                            <div style={{
+                                backgroundColor: 'var(--danger-light)', color: 'var(--danger)',
+                                padding: 'var(--space-3)', borderRadius: 'var(--radius-md)',
+                                marginBottom: 'var(--space-4)', fontSize: '0.85rem',
+                                border: '1px solid var(--danger-light)'
+                            }}>
+                                {error}
+                            </div>
+                        )}
+
+                        {resetSent ? (
                             <div style={{
                                 backgroundColor: 'rgba(56,161,105,0.1)', color: 'var(--success)',
                                 padding: 'var(--space-4)', borderRadius: 'var(--radius-md)',
                                 textAlign: 'center', fontSize: '0.9rem',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                             }}>
-                                <FaCheckCircle /> {resetSuccess}
+                                <FaCheckCircle /> Reset link sent! Check your email.
                             </div>
                         ) : (
-                            <>
-                                <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Reset Password</h2>
-                                <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginBottom: 'var(--space-6)' }}>
-                                    {resetStep === 'email' ? 'Enter your email to receive a reset code.' : 'Enter your new password.'}
-                                </p>
-
-                                {error && (
-                                    <div style={{
-                                        backgroundColor: 'var(--danger-light)', color: 'var(--danger)',
-                                        padding: 'var(--space-3)', borderRadius: 'var(--radius-md)',
-                                        marginBottom: 'var(--space-4)', fontSize: '0.85rem',
-                                        border: '1px solid var(--danger-light)'
-                                    }}>
-                                        {error}
-                                    </div>
-                                )}
-
-                                {resetStep === 'email' ? (
-                                    <form onSubmit={handleForgotPassword}>
-                                        <div style={{ marginBottom: 'var(--space-4)', position: 'relative' }}>
-                                            <FaEnvelope style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-                                            <input
-                                                type="email"
-                                                placeholder="Email Address"
-                                                value={resetEmail}
-                                                onChange={(e) => setResetEmail(e.target.value)}
-                                                className="input"
-                                                style={{ paddingLeft: '3rem' }}
-                                                required
-                                            />
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            className="btn btn-primary"
-                                            style={{ width: '100%', padding: 'var(--space-3)' }}
-                                            disabled={isSubmitting}
-                                        >
-                                            {isSubmitting ? 'Sending...' : 'Send Reset Code'}
-                                        </button>
-                                    </form>
-                                ) : (
-                                    <form onSubmit={handleResetWithToken}>
-                                        <div style={{ marginBottom: 'var(--space-4)' }}>
-                                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '8px', color: 'var(--color-text-main)' }}>New Password</label>
-                                            <input
-                                                type="password"
-                                                className="input"
-                                                value={newPassword}
-                                                onChange={(e) => setNewPassword(e.target.value)}
-                                                placeholder="Minimum 8 characters"
-                                                required
-                                            />
-                                        </div>
-                                        <div style={{ marginBottom: 'var(--space-6)' }}>
-                                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '500', marginBottom: '8px', color: 'var(--color-text-main)' }}>Confirm Password</label>
-                                            <input
-                                                type="password"
-                                                className="input"
-                                                value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                                placeholder="Re-enter your password"
-                                                required
-                                            />
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            className="btn btn-primary"
-                                            style={{ width: '100%', padding: 'var(--space-3)' }}
-                                            disabled={isSubmitting}
-                                        >
-                                            {isSubmitting ? 'Resetting...' : 'Reset Password'}
-                                        </button>
-                                    </form>
-                                )}
-                            </>
+                            <form onSubmit={handleForgotPassword}>
+                                <div style={{ marginBottom: 'var(--space-4)', position: 'relative' }}>
+                                    <FaEnvelope style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
+                                    <input
+                                        type="email"
+                                        placeholder="Email Address"
+                                        value={resetEmail}
+                                        onChange={(e) => setResetEmail(e.target.value)}
+                                        className="input"
+                                        style={{ paddingLeft: '3rem' }}
+                                        required
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary"
+                                    style={{ width: '100%', padding: 'var(--space-3)' }}
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                                </button>
+                            </form>
                         )}
                     </>
                 )}

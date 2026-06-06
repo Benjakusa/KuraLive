@@ -1,0 +1,111 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-uchaguzi360}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/migration_modules.sql:/docker-entrypoint-initdb.d/02-modules.sql
+      - ./backend/migration_production.sql:/docker-entrypoint-initdb.d/03-production.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-development-secret-key-change-in-production}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@pgbouncer:6432/uchaguzi360}
+      DATABASE_URL_DIRECT: ${DATABASE_URL_DIRECT:-postgresql://postgres:postgres@db:5432/uchaguzi360}
+      DARAJA_ENV: ${DARAJA_ENV:-sandbox}
+      DARAJA_SHORT_CODE: "174379"
+      FRONTEND_URL: http://localhost:5173
+      FLASK_DEBUG: "false"
+      REDIS_URL: redis://redis:6379/0
+      UPLOAD_FOLDER: /app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: ./backend
+    command: python worker.py
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-development-secret-key-change-in-production}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@pgbouncer:6432/uchaguzi360}
+      REDIS_URL: redis://redis:6379/0
+      FLASK_DEBUG: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+
+  pgbouncer:
+    image: edoburu/pgbouncer:1.21.0
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/uchaguzi360
+      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 50
+      POOL_MODE: transaction
+    ports:
+      - "6432:6432"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+volumes:
+  pgdata:

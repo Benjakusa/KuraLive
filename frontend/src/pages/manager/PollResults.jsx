@@ -5,12 +5,12 @@ import { FaArrowLeft, FaChartPie, FaChartBar, FaUsers, FaMapMarkerAlt, FaFilter 
 import { kenyaLocations } from '../../utils/kenyaLocations';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const req = (url, opts = {}) => fetch(url, { ...opts, credentials: 'include' });
 
 function PollResults() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const token = localStorage.getItem('uchaguzi360_token');
-    const headers = { Authorization: `Bearer ${token}` };
+    const headers = {};
 
     const [poll, setPoll] = useState(null);
     const [analytics, setAnalytics] = useState(null);
@@ -19,16 +19,16 @@ function PollResults() {
     const [isFiltering, setIsFiltering] = useState(false);
 
     useEffect(() => {
-        fetch(`${API}/polls/${id}`, { headers }).then(r => r.json()).then(d => setPoll(d.data));
+        req(`${API}/polls/${id}`, { headers }).then(r => r.json()).then(d => setPoll(d.data));
         // initial fetch just for rawGeo stations
-        fetch(`${API}/polls/${id}/results`, { headers }).then(r => r.json()).then(d => setRawGeo(d.geographic_breakdown));
+        req(`${API}/polls/${id}/results`, { headers }).then(r => r.json()).then(d => setRawGeo(d.geographic_breakdown));
     }, [id]);
 
     useEffect(() => {
         setIsFiltering(true);
         const queryParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v)).toString();
         const url = `${API}/polls/${id}/results${queryParams ? `?${queryParams}` : ''}`;
-        fetch(url, { headers })
+        req(url, { headers })
             .then(r => r.json())
             .then(d => setAnalytics(d))
             .finally(() => setIsFiltering(false));

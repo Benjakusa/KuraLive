@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import api, { setToken, getTokenValue } from '../lib/api';
+import api from '../lib/api';
 
 const AuthContext = createContext();
 
@@ -11,14 +11,6 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     const checkAuthStatus = async () => {
-        const token = getTokenValue();
-        if (!token) {
-            setCurrentUser(null);
-            setUserRole(null);
-            setLoading(false);
-            return;
-        }
-
         try {
             const data = await api.getMe();
             const user = data.user;
@@ -37,8 +29,6 @@ export const AuthProvider = ({ children }) => {
             });
             setUserRole(user.role);
         } catch (error) {
-            console.error('Auth check failed', error);
-            setToken(null);
             setCurrentUser(null);
             setUserRole(null);
         }
@@ -51,7 +41,6 @@ export const AuthProvider = ({ children }) => {
 
     const signup = async (email, password, role, name) => {
         const data = await api.signup(email, password, role, name);
-        setToken(data.token);
         const user = data.user;
         const userObj = {
             uid: user.id,
@@ -73,7 +62,6 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         const data = await api.login(email, password);
-        setToken(data.token);
         const user = data.user;
         const userObj = {
             uid: user.id,
@@ -103,7 +91,6 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try { await api.logout(); } catch (e) {}
-        setToken(null);
         setCurrentUser(null);
         setUserRole(null);
     };
